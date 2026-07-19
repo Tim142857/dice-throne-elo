@@ -1,0 +1,16 @@
+# Supabase local/CLI configuration (optional).
+# Link a remote project with: npx supabase link --project-ref <ref>
+
+project_id = "dice-throne-elo"
+
+[api]
+enabled = true
+port = 54321
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323

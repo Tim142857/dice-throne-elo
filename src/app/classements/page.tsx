@@ -1,0 +1,134 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+
+import { listGeneralRankings, type GeneralRankingSort } from "@/lib/rankings/queries";
+
+export const metadata: Metadata = {
+  title: "Classement général",
+  description: "Classement Elo général des joueurs Dice Throne.",
+};
+
+export const dynamic = "force-dynamic";
+
+type ClassementsPageProps = {
+  searchParams: Promise<{ tri?: string; q?: string }>;
+};
+
+function parseSort(pValue: string | undefined): GeneralRankingSort {
+  if (pValue === "winRate" || pValue === "matches" || pValue === "wins") {
+    return pValue;
+  }
+  return "rating";
+}
+
+export default async function ClassementsPage({ searchParams }: ClassementsPageProps) {
+  const params = await searchParams;
+  const sort = parseSort(params.tri);
+  const search = params.q ?? "";
+
+  let rows: Awaited<ReturnType<typeof listGeneralRankings>> = [];
+  let loadError: string | null = null;
+
+  try {
+    rows = await listGeneralRankings({ sort, search });
+  } catch (pError) {
+    loadError = pError instanceof Error ? pError.message : "Chargement impossible.";
+  }
+
+  return (
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-16">
+      <header className="flex flex-col gap-3">
+        <h1 className="text-3xl font-semibold tracking-tight">Classement général</h1>
+        <p className="text-zinc-600">
+          Elo calculé sur les matchs validés. Les égalités utilisent la valeur décimale exacte
+          (ex æquo en méthode compétition).
+        </p>
+        <div className="flex flex-wrap gap-3 text-sm">
+          <Link href="/classements/joueurs-heros" className="font-medium text-zinc-900 underline">
+            Classement joueur–héros
+          </Link>
+        </div>
+      </header>
+
+      <form className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <label className="flex flex-1 flex-col gap-1 text-sm">
+          <span className="font-medium">Recherche</span>
+          <input
+            name="q"
+            defaultValue={search}
+            placeholder="Pseudo"
+            className="rounded-md border border-zinc-300 px-3 py-2"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium">Trier par</span>
+          <select name="tri" defaultValue={sort} className="rounded-md border border-zinc-300 px-3 py-2">
+            <option value="rating">Elo</option>
+            <option value="winRate">Taux de victoire</option>
+            <option value="matches">Nombre de matchs</option>
+            <option value="wins">Victoires</option>
+          </select>
+        </label>
+        <button
+          type="submit"
+          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700"
+        >
+          Filtrer
+        </button>
+      </form>
+
+      {loadError ? (
+        <p className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Classement indisponible ({loadError}).
+        </p>
+      ) : rows.length === 0 ? (
+        <p className="rounded-md border border-dashed border-zinc-300 bg-white p-5 text-sm text-zinc-600">
+          Aucun joueur classé pour le moment.
+        </p>
+      ) : (
+        <div className="overflow-x-auto rounded-md border border-zinc-200 bg-white">
+          <table className="min-w-full text-left text-sm">
+            <thead className="bg-zinc-50 text-xs tracking-wide text-zinc-500 uppercase">
+              <tr>
+                <th className="px-3 py-3">Rang</th>
+                <th className="px-3 py-3">Joueur</th>
+                <th className="px-3 py-3">Elo</th>
+                <th className="px-3 py-3">MJ</th>
+                <th className="px-3 py-3">V</th>
+                <th className="px-3 py-3">D</th>
+                <th className="px-3 py-3">%V</th>
+                <th className="px-3 py-3">Série</th>
+                <th className="px-3 py-3">Adv.</th>
+                <th className="px-3 py-3">Dernier</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((pRow) => (
+                <tr key={pRow.profileId} className="border-t border-zinc-200">
+                  <td className="px-3 py-3 font-medium">{pRow.rank}</td>
+                  <td className="px-3 py-3">
+                    <Link href={`/joueurs/${pRow.slug}`} className="font-medium hover:underline">
+                      {pRow.pseudo}
+                    </Link>
+                  </td>
+                  <td className="px-3 py-3">{pRow.ratingDisplay}</td>
+                  <td className="px-3 py-3">{pRow.matchesCount}</td>
+                  <td className="px-3 py-3">{pRow.winsCount}</td>
+                  <td className="px-3 py-3">{pRow.lossesCount}</td>
+                  <td className="px-3 py-3">{pRow.winRateLabel}</td>
+                  <td className="px-3 py-3">{pRow.currentStreak}</td>
+                  <td className="px-3 py-3">{pRow.distinctOpponents}</td>
+                  <td className="px-3 py-3 text-zinc-600">
+                    {pRow.lastValidatedMatchAt
+                      ? new Date(pRow.lastValidatedMatchAt).toLocaleDateString("fr-FR")
+                      : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </main>
+  );
+}

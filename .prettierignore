@@ -1,0 +1,9 @@
+node_modules
+.next
+out
+build
+coverage
+playwright-report
+test-results
+package-lock.json
+Cahier_des_charges_Web_App_Elo_Dice_Throne.md
