@@ -19,12 +19,18 @@ export const presentationMessageSchema = z
     return pValue;
   });
 
-export const signUpSchema = z.object({
-  email: z.string().trim().email("Adresse email invalide."),
-  password: passwordSchema,
-  pseudo: pseudoSchema,
-  presentationMessage: presentationMessageSchema,
-});
+export const signUpSchema = z
+  .object({
+    email: z.string().trim().email("Adresse email invalide."),
+    password: passwordSchema,
+    passwordConfirm: z.string().min(1, "Confirmez le mot de passe."),
+    pseudo: pseudoSchema,
+    presentationMessage: presentationMessageSchema,
+  })
+  .refine((pData) => pData.password === pData.passwordConfirm, {
+    message: "Les mots de passe ne correspondent pas.",
+    path: ["passwordConfirm"],
+  });
 
 export const signInSchema = z.object({
   email: z.string().trim().email("Adresse email invalide."),

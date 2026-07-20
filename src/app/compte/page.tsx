@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { getAccountStatusLabel, getAuthContext } from "@/lib/auth/session";
+import { getAccountStatusLabel, getAuthContext, getDisplayPseudo } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
   title: "Compte",
@@ -26,11 +26,7 @@ export default async function AccountPage() {
         </div>
         <div>
           <dt className="font-medium text-zinc-500">Pseudo</dt>
-          <dd className="mt-1 text-zinc-900">
-            {context.profile?.pseudo ??
-              context.accountRequest?.requestedPseudo ??
-              "Non défini"}
-          </dd>
+          <dd className="mt-1 text-zinc-900">{getDisplayPseudo(context) ?? "Non défini"}</dd>
         </div>
         <div>
           <dt className="font-medium text-zinc-500">Statut</dt>

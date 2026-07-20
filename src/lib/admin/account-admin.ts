@@ -170,6 +170,25 @@ export async function approveAccountRequest(pInput: {
       throw new Error("Le profil sélectionné n’est pas disponible pour liaison.");
     }
 
+    const applicantIsAdmin = pendingProfile?.role === "admin";
+    const conflictingProfile =
+      pendingProfile &&
+      pendingProfile.id !== target.id &&
+      pendingProfile.authUserId === request.authUserId
+        ? pendingProfile
+        : null;
+
+    if (conflictingProfile) {
+      const { error: releaseError } = await admin
+        .from("profiles")
+        .update({ auth_user_id: null })
+        .eq("id", conflictingProfile.id);
+
+      if (releaseError) {
+        throw new Error(releaseError.message);
+      }
+    }
+
     const { error: linkError } = await admin
       .from("profiles")
       .update({
@@ -177,6 +196,7 @@ export async function approveAccountRequest(pInput: {
         status: "active",
         approved_at: new Date().toISOString(),
         suspended_at: null,
+        ...(applicantIsAdmin ? { role: "admin" } : {}),
       })
       .eq("id", target.id);
 
@@ -184,7 +204,17 @@ export async function approveAccountRequest(pInput: {
       throw new Error(linkError.message);
     }
 
-    if (decision.shouldDeleteOrphanPendingProfile && decision.orphanPendingProfileId) {
+    if (conflictingProfile) {
+      await admin
+        .from("account_requests")
+        .update({ reviewed_by: target.id })
+        .eq("reviewed_by", conflictingProfile.id);
+
+      const { error: deleteError } = await admin.from("profiles").delete().eq("id", conflictingProfile.id);
+      if (deleteError) {
+        throw new Error(deleteError.message);
+      }
+    } else if (decision.shouldDeleteOrphanPendingProfile && decision.orphanPendingProfileId) {
       const { error: deleteError } = await admin
         .from("profiles")
         .delete()
@@ -225,11 +255,18 @@ export async function approveAccountRequest(pInput: {
     });
   }
 
+  const reviewerProfileId =
+    decision.mode === "linkPreloadedProfile" &&
+    pInput.adminProfile.id === pendingProfile?.id &&
+    decision.targetProfileId !== pInput.adminProfile.id
+      ? decision.targetProfileId
+      : pInput.adminProfile.id;
+
   const { error: requestError } = await admin
     .from("account_requests")
     .update({
       status: "approved",
-      reviewed_by: pInput.adminProfile.id,
+      reviewed_by: reviewerProfileId,
       reviewed_at: new Date().toISOString(),
       rejection_reason: null,
       linked_profile_id: decision.targetProfileId,
@@ -241,7 +278,7 @@ export async function approveAccountRequest(pInput: {
   }
 
   await writeAuditLog({
-    actorProfileId: pInput.adminProfile.id,
+    actorProfileId: reviewerProfileId,
     action: "account_request.approved",
     entityType: "account_request",
     entityId: request.id,

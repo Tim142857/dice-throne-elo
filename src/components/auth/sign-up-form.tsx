@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { PasswordInput } from "@/components/auth/password-input";
 import { signUpAction } from "@/app/actions/auth";
 
 export function SignUpForm() {
@@ -31,7 +32,7 @@ export function SignUpForm() {
         }}
       >
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-zinc-800">Pseudo public</span>
+          <span className="font-medium text-violet-900">Pseudo public</span>
           <input
             name="pseudo"
             type="text"
@@ -39,37 +40,40 @@ export function SignUpForm() {
             minLength={3}
             maxLength={24}
             autoComplete="username"
-            className="rounded-md border border-zinc-300 px-3 py-2"
+            className="brand-input"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-zinc-800">Email</span>
+          <span className="font-medium text-violet-900">Email</span>
           <input
             name="email"
             type="email"
             required
             autoComplete="email"
-            className="rounded-md border border-zinc-300 px-3 py-2"
+            className="brand-input"
           />
         </label>
+        <PasswordInput
+          name="password"
+          label="Mot de passe"
+          required
+          autoComplete="new-password"
+          minLength={8}
+        />
+        <PasswordInput
+          name="passwordConfirm"
+          label="Confirmer le mot de passe"
+          required
+          autoComplete="new-password"
+          minLength={8}
+        />
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-zinc-800">Mot de passe</span>
-          <input
-            name="password"
-            type="password"
-            required
-            autoComplete="new-password"
-            minLength={8}
-            className="rounded-md border border-zinc-300 px-3 py-2"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-zinc-800">Message à l’administrateur (optionnel)</span>
+          <span className="font-medium text-violet-900">Message à l’administrateur (optionnel)</span>
           <textarea
             name="presentationMessage"
             rows={3}
             maxLength={500}
-            className="rounded-md border border-zinc-300 px-3 py-2"
+            className="brand-input"
           />
         </label>
         {error ? (
@@ -88,7 +92,7 @@ export function SignUpForm() {
         <button
           type="submit"
           disabled={isPending}
-          className="rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60"
+          className="btn-primary w-full disabled:opacity-60"
         >
           {isPending ? "Création…" : "Créer mon compte"}
         </button>

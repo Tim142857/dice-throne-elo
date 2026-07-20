@@ -107,8 +107,26 @@ export async function ensureAdminBootstrap(pUser: User): Promise<ProfileRow | nu
     return mapProfileRow(data as ProfileDbRow);
   }
 
+  const accountRequestResponse = await admin
+    .from("account_requests")
+    .select("requested_pseudo")
+    .eq("auth_user_id", pUser.id)
+    .maybeSingle();
+
+  if (accountRequestResponse.error) {
+    throw new Error(accountRequestResponse.error.message);
+  }
+
+  const metadataPseudo =
+    typeof pUser.user_metadata?.requested_pseudo === "string"
+      ? pUser.user_metadata.requested_pseudo.trim()
+      : "";
   const localPart = pUser.email.split("@")[0] ?? "Admin";
-  const pseudo = localPart.slice(0, 24).replace(/[^A-Za-z0-9 _-]/g, "") || "Admin";
+  const emailPseudo = localPart.slice(0, 24).replace(/[^A-Za-z0-9 _-]/g, "") || "Admin";
+  const pseudo =
+    (accountRequestResponse.data?.requested_pseudo as string | undefined) ||
+    metadataPseudo ||
+    emailPseudo;
   const normalized = normalizePseudo(pseudo);
 
   const { data, error } = await admin

@@ -22,6 +22,10 @@ export const metadata: Metadata = {
   },
   description:
     "Classements Elo publics pour Dice Throne : matchs 1 contre 1, validation mutuelle et statistiques.",
+  icons: {
+    icon: "/images/logo.avif",
+    apple: "/images/logo.avif",
+  },
 };
 
 export default function RootLayout({
@@ -34,7 +38,7 @@ export default function RootLayout({
       lang="fr"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col bg-zinc-50 text-zinc-900">
+      <body className="app-background flex min-h-full flex-col text-zinc-900">
         <a href="#contenu" className="skip-link">
           Aller au contenu
         </a>

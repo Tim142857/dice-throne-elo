@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { SignInForm } from "@/components/auth/sign-in-form";
+import { AuthPageShell } from "@/components/layout/auth-page-shell";
 
 export const metadata: Metadata = {
   title: "Connexion",
@@ -24,17 +25,18 @@ export default async function ConnexionPage({ searchParams }: ConnexionPageProps
           : undefined;
 
   return (
-    <main className="mx-auto w-full max-w-md px-6 py-16">
-      <h1 className="text-3xl font-semibold tracking-tight">Connexion</h1>
-      <p className="mt-2 text-sm text-zinc-600">
-        Pas encore de compte ?{" "}
-        <Link href="/inscription" className="font-medium text-zinc-950 underline">
-          Créer un compte
-        </Link>
-      </p>
-      <div className="mt-8">
-        <SignInForm nextPath={nextPath} initialError={initialError} />
-      </div>
-    </main>
+    <AuthPageShell
+      title="Connexion"
+      description={
+        <>
+          Pas encore de compte ?{" "}
+          <Link href="/inscription" className="font-semibold text-violet-700 underline">
+            Créer un compte
+          </Link>
+        </>
+      }
+    >
+      <SignInForm nextPath={nextPath} initialError={initialError} />
+    </AuthPageShell>
   );
 }

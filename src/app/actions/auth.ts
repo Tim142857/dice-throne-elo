@@ -72,6 +72,7 @@ export async function signUpAction(pFormData: FormData): Promise<ActionResult> {
   const parsed = signUpSchema.safeParse({
     email: pFormData.get("email"),
     password: pFormData.get("password"),
+    passwordConfirm: pFormData.get("passwordConfirm"),
     pseudo: pFormData.get("pseudo"),
     presentationMessage: pFormData.get("presentationMessage") || undefined,
   });

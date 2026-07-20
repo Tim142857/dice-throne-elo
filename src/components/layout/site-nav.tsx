@@ -1,19 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { signOutAction } from "@/app/actions/auth";
 
 const linkClassName =
-  "inline-flex min-h-11 items-center rounded-md px-3 text-sm text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2";
+  "inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-violet-900/80 hover:bg-violet-100 hover:text-violet-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2";
 
 type SiteNavProps = {
+  children: ReactNode;
   isLoggedIn: boolean;
   unreadCount?: number;
 };
 
-export function SiteNav({ isLoggedIn, unreadCount = 0 }: SiteNavProps) {
+export function SiteNav({ children, isLoggedIn, unreadCount = 0 }: SiteNavProps) {
   const [open, setOpen] = useState(false);
 
   const notificationsLabel =
@@ -55,7 +57,7 @@ export function SiteNav({ isLoggedIn, unreadCount = 0 }: SiteNavProps) {
       >
         Notifications
         {unreadCount > 0 ? (
-          <span className="ml-1 inline-flex min-w-5 items-center justify-center rounded-full bg-zinc-900 px-1.5 text-xs font-medium text-white">
+          <span className="ml-1 inline-flex min-w-5 items-center justify-center rounded-full bg-gradient-to-r from-amber-400 to-orange-500 px-1.5 text-xs font-bold text-amber-950">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         ) : null}
@@ -73,7 +75,7 @@ export function SiteNav({ isLoggedIn, unreadCount = 0 }: SiteNavProps) {
       </Link>
       <Link
         href="/inscription"
-        className="inline-flex min-h-11 items-center rounded-md bg-zinc-900 px-3 text-sm font-medium text-white hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
+        className="inline-flex min-h-11 items-center rounded-lg bg-gradient-to-r from-violet-700 to-violet-600 px-3 text-sm font-semibold text-white shadow-md shadow-violet-500/25 hover:from-violet-600 hover:to-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
         onClick={() => setOpen(false)}
       >
         Inscription
@@ -82,32 +84,39 @@ export function SiteNav({ isLoggedIn, unreadCount = 0 }: SiteNavProps) {
   );
 
   return (
-    <div className="flex w-full flex-col gap-3 md:w-auto">
-      <div className="flex items-center justify-end gap-1">
-        <nav className="hidden items-center gap-1 md:flex" aria-label="Navigation principale">
-          {publicLinks}
-          {authLinks}
-        </nav>
+    <div className="flex flex-col">
+      <div className="flex items-center justify-between gap-3 py-3">
+        {children}
 
-        <button
-          type="button"
-          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-zinc-300 text-sm font-medium text-zinc-900 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 md:hidden"
-          aria-expanded={open}
-          aria-controls="menu-mobile"
-          onClick={() => setOpen((pValue) => !pValue)}
-        >
-          {open ? "Fermer" : "Menu"}
-        </button>
+        <div className="flex shrink-0 items-center self-center">
+          <nav className="hidden items-center gap-1 md:flex" aria-label="Navigation principale">
+            {publicLinks}
+            {authLinks}
+          </nav>
+
+          <button
+            type="button"
+            className="inline-flex size-11 items-center justify-center rounded-lg border border-violet-200 text-lg leading-none text-violet-950 hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 md:hidden"
+            aria-expanded={open}
+            aria-controls="menu-mobile"
+            aria-label={open ? "Fermer le menu" : "Ouvrir le menu"}
+            onClick={() => setOpen((pValue) => !pValue)}
+          >
+            {open ? "✕" : "☰"}
+          </button>
+        </div>
       </div>
 
       {open ? (
         <nav
           id="menu-mobile"
-          className="flex flex-col gap-1 border-t border-zinc-200 pt-3 md:hidden"
+          className="border-t border-violet-200 pb-3 md:hidden"
           aria-label="Navigation mobile"
         >
-          {publicLinks}
-          {authLinks}
+          <div className="flex flex-col gap-1 pt-3">
+            {publicLinks}
+            {authLinks}
+          </div>
         </nav>
       ) : null}
     </div>

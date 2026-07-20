@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { PageHero } from "@/components/layout/page-hero";
+import { brandImages } from "@/lib/branding";
 import { listGeneralRankings, type GeneralRankingSort } from "@/lib/rankings/queries";
 
 export const metadata: Metadata = {
@@ -36,43 +38,39 @@ export default async function ClassementsPage({ searchParams }: ClassementsPageP
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-16">
-      <header className="flex flex-col gap-3">
-        <h1 className="text-3xl font-semibold tracking-tight">Classement général</h1>
-        <p className="text-zinc-600">
-          Elo calculé sur les matchs validés. Les égalités utilisent la valeur décimale exacte
-          (ex æquo en méthode compétition).
-        </p>
-        <div className="flex flex-wrap gap-3 text-sm">
-          <Link href="/classements/joueurs-heros" className="font-medium text-zinc-900 underline">
-            Classement joueur–héros
-          </Link>
-        </div>
-      </header>
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-10 lg:py-14">
+      <PageHero
+        eyebrow="Classements"
+        title="Classement général"
+        description="Elo calculé sur les matchs validés. Les égalités utilisent la valeur décimale exacte (ex æquo en méthode compétition)."
+        imageSrc={brandImages.diceAction}
+      />
+      <div className="flex flex-wrap gap-3 text-sm">
+        <Link href="/classements/joueurs-heros" className="font-semibold text-violet-700 underline">
+          Classement joueur–héros
+        </Link>
+      </div>
 
-      <form className="flex flex-col gap-3 sm:flex-row sm:items-end">
+      <form className="brand-card flex flex-col gap-3 rounded-2xl p-5 sm:flex-row sm:items-end">
         <label className="flex flex-1 flex-col gap-1 text-sm">
-          <span className="font-medium">Recherche</span>
+          <span className="font-medium text-violet-900">Recherche</span>
           <input
             name="q"
             defaultValue={search}
             placeholder="Pseudo"
-            className="rounded-md border border-zinc-300 px-3 py-2"
+            className="brand-input"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Trier par</span>
-          <select name="tri" defaultValue={sort} className="rounded-md border border-zinc-300 px-3 py-2">
+          <span className="font-medium text-violet-900">Trier par</span>
+          <select name="tri" defaultValue={sort} className="brand-input">
             <option value="rating">Elo</option>
             <option value="winRate">Taux de victoire</option>
             <option value="matches">Nombre de matchs</option>
             <option value="wins">Victoires</option>
           </select>
         </label>
-        <button
-          type="submit"
-          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700"
-        >
+        <button type="submit" className="btn-primary">
           Filtrer
         </button>
       </form>
@@ -86,9 +84,9 @@ export default async function ClassementsPage({ searchParams }: ClassementsPageP
           Aucun joueur classé pour le moment.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-md border border-zinc-200 bg-white">
+        <div className="brand-card overflow-x-auto rounded-2xl">
           <table className="min-w-full text-left text-sm">
-            <thead className="bg-zinc-50 text-xs tracking-wide text-zinc-500 uppercase">
+            <thead className="bg-violet-50 text-xs tracking-wide text-violet-700 uppercase">
               <tr>
                 <th className="px-3 py-3">Rang</th>
                 <th className="px-3 py-3">Joueur</th>
@@ -104,10 +102,12 @@ export default async function ClassementsPage({ searchParams }: ClassementsPageP
             </thead>
             <tbody>
               {rows.map((pRow) => (
-                <tr key={pRow.profileId} className="border-t border-zinc-200">
-                  <td className="px-3 py-3 font-medium">{pRow.rank}</td>
+                <tr key={pRow.profileId} className="border-t border-violet-100 even:bg-violet-50/40">
                   <td className="px-3 py-3">
-                    <Link href={`/joueurs/${pRow.slug}`} className="font-medium hover:underline">
+                    <span className="rank-badge">{pRow.rank}</span>
+                  </td>
+                  <td className="px-3 py-3">
+                    <Link href={`/joueurs/${pRow.slug}`} className="font-semibold text-violet-950 hover:text-violet-700">
                       {pRow.pseudo}
                     </Link>
                   </td>

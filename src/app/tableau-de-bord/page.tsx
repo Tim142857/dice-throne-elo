@@ -6,6 +6,7 @@ import {
   canDeclareMatches,
   getAccountStatusLabel,
   getAuthContext,
+  getDisplayPseudo,
 } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
@@ -26,25 +27,21 @@ export default async function DashboardPage() {
 
   const statusLabel = getAccountStatusLabel(context);
   const canPlay = canDeclareMatches(context);
+  const displayPseudo = getDisplayPseudo(context);
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-6 py-16">
+    <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-10 lg:py-14">
       <header className="flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold tracking-tight">Tableau de bord</h1>
-        <p className="text-zinc-600">
-          Bonjour
-          {context.profile
-            ? ` ${context.profile.pseudo}`
-            : context.accountRequest
-              ? ` ${context.accountRequest.requestedPseudo}`
-              : ""}
-          .
+        <p className="text-sm font-semibold tracking-[0.18em] text-violet-600 uppercase">Espace joueur</p>
+        <h1 className="text-3xl font-bold tracking-tight text-violet-950">Tableau de bord</h1>
+        <p className="text-brand-muted">
+          Bonjour{displayPseudo ? ` ${displayPseudo}` : ""}.
         </p>
       </header>
 
-      <section className="rounded-md border border-zinc-200 bg-white p-5">
-        <h2 className="text-lg font-medium">État du compte</h2>
-        <p className="mt-2 text-sm text-zinc-700">{statusLabel}</p>
+      <section className="brand-card rounded-2xl p-6">
+        <h2 className="text-lg font-bold text-violet-950">État du compte</h2>
+        <p className="mt-2 text-sm text-violet-900">{statusLabel}</p>
         {!context.emailVerified ? (
           <p className="mt-3 text-sm text-zinc-600">
             Un email de confirmation vous a été envoyé. Ouvrez le lien pour poursuivre.
@@ -74,7 +71,7 @@ export default async function DashboardPage() {
         {canPlay ? (
           <Link
             href="/matchs/nouveau"
-            className="inline-flex min-h-11 items-center justify-center rounded-md bg-zinc-900 px-5 py-3 text-sm font-medium text-white hover:bg-zinc-700"
+            className="btn-primary min-h-11 px-5 py-3"
           >
             Déclarer un match
           </Link>
@@ -87,13 +84,13 @@ export default async function DashboardPage() {
           <>
             <Link
               href="/mes-matchs"
-              className="inline-flex min-h-11 items-center justify-center rounded-md border border-zinc-300 bg-white px-5 py-3 text-sm font-medium text-zinc-900 hover:bg-zinc-100"
+              className="btn-secondary min-h-11 px-5 py-3"
             >
               Mes matchs
             </Link>
             <Link
               href="/notifications"
-              className="inline-flex min-h-11 items-center justify-center rounded-md border border-zinc-300 bg-white px-5 py-3 text-sm font-medium text-zinc-900 hover:bg-zinc-100"
+              className="btn-secondary min-h-11 px-5 py-3"
             >
               Notifications
             </Link>
@@ -101,14 +98,14 @@ export default async function DashboardPage() {
         ) : null}
         <Link
           href="/classements"
-          className="inline-flex min-h-11 items-center justify-center rounded-md border border-zinc-300 bg-white px-5 py-3 text-sm font-medium text-zinc-900 hover:bg-zinc-100"
+          className="btn-secondary min-h-11 px-5 py-3"
         >
           Voir les classements
         </Link>
         {context.profile?.role === "admin" && context.profile.status === "active" ? (
           <Link
             href="/admin"
-            className="inline-flex min-h-11 items-center justify-center rounded-md border border-zinc-300 bg-white px-5 py-3 text-sm font-medium text-zinc-900 hover:bg-zinc-100"
+            className="btn-secondary min-h-11 px-5 py-3"
           >
             Administration
           </Link>

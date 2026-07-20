@@ -78,6 +78,20 @@ export async function requireAdminContext(): Promise<AuthContext & { profile: Pr
   return { ...context, profile: context.profile };
 }
 
+export function getDisplayPseudo(pContext: AuthContext): string | null {
+  if (pContext.accountRequest?.requestedPseudo) {
+    return pContext.accountRequest.requestedPseudo;
+  }
+  if (pContext.profile?.pseudo) {
+    return pContext.profile.pseudo;
+  }
+  const metadataPseudo = pContext.user.user_metadata?.requested_pseudo;
+  if (typeof metadataPseudo === "string" && metadataPseudo.trim().length > 0) {
+    return metadataPseudo.trim();
+  }
+  return null;
+}
+
 export function getAccountStatusLabel(pContext: AuthContext): string {
   if (!pContext.emailVerified) {
     return "Vérification de l’email en attente";

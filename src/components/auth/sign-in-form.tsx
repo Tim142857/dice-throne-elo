@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { PasswordInput } from "@/components/auth/password-input";
 import { signInAction } from "@/app/actions/auth";
 
 type SignInFormProps = {
@@ -34,26 +35,22 @@ export function SignInForm({ nextPath, initialError }: SignInFormProps) {
       >
         <input type="hidden" name="next" value={nextPath} />
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-zinc-800">Email</span>
+          <span className="font-medium text-violet-900">Email</span>
           <input
             name="email"
             type="email"
             required
             autoComplete="email"
-            className="rounded-md border border-zinc-300 px-3 py-2"
+            className="brand-input"
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-zinc-800">Mot de passe</span>
-          <input
-            name="password"
-            type="password"
-            required
-            autoComplete="current-password"
-            minLength={8}
-            className="rounded-md border border-zinc-300 px-3 py-2"
-          />
-        </label>
+        <PasswordInput
+          name="password"
+          label="Mot de passe"
+          required
+          autoComplete="current-password"
+          minLength={8}
+        />
         {error ? (
           <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
             {error}
@@ -62,7 +59,7 @@ export function SignInForm({ nextPath, initialError }: SignInFormProps) {
         <button
           type="submit"
           disabled={isPending}
-          className="rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60"
+          className="btn-primary w-full disabled:opacity-60"
         >
           {isPending ? "Connexion…" : "Se connecter"}
         </button>

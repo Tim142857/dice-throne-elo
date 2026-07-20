@@ -49,6 +49,9 @@ const HEADER_ALIASES: Record<keyof Omit<HistoricalMatchRawRow, "rowNumber">, str
     "remaininghealth",
     "pvrestants",
     "winner_hp",
+    "differencedepv",
+    "differencepv",
+    "differencehp",
   ],
   notes: ["notes", "note", "commentaire", "comments"],
 };
@@ -147,6 +150,23 @@ export function buildImportSourceKey(pInput: {
   return `import:v1:${digest}:r${pInput.rowNumber}`;
 }
 
+export function normalizePlayedAt(pValue: string): string | null {
+  const trimmed = pValue.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  const frenchMatch = trimmed.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (frenchMatch) {
+    const day = frenchMatch[1]!.padStart(2, "0");
+    const month = frenchMatch[2]!.padStart(2, "0");
+    const year = frenchMatch[3]!;
+    return `${year}-${month}-${day}`;
+  }
+
+  return null;
+}
+
 export function buildValidatedAtForImport(pPlayedAt: string, pRowNumber: number): string {
   const epoch = Date.parse(`${pPlayedAt}T00:00:00.000Z`);
   if (Number.isNaN(epoch)) {
@@ -158,11 +178,14 @@ export function buildValidatedAtForImport(pPlayedAt: string, pRowNumber: number)
 export function parseHistoricalMatchRow(
   pRaw: HistoricalMatchRawRow,
 ): { ok: true; row: HistoricalMatchParsedRow } | { ok: false; issue: HistoricalMatchRowIssue } {
-  const playedAt = pRaw.playedAt.trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(playedAt)) {
+  const playedAt = normalizePlayedAt(pRaw.playedAt);
+  if (!playedAt) {
     return {
       ok: false,
-      issue: { rowNumber: pRaw.rowNumber, message: "Date invalide (attendu YYYY-MM-DD)." },
+      issue: {
+        rowNumber: pRaw.rowNumber,
+        message: "Date invalide (attendu YYYY-MM-DD ou DD/MM/YYYY).",
+      },
     };
   }
 

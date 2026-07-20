@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildImportSourceKey,
   buildValidatedAtForImport,
+  normalizePlayedAt,
   parseCsv,
   parseHistoricalMatchRow,
   rawRowsFromCsvMatrix,
@@ -29,9 +30,44 @@ describe("rawRowsFromCsvMatrix", () => {
       expect(rows[0]?.hero2).toBe("Thor");
     }
   });
+
+  it("maps difference de pv header", () => {
+    const rows = rawRowsFromCsvMatrix([
+      ["Date", "Joueur 1", "Héros 1", "Joueur 2", "Héros 2", "Vainqueur", "différence de PV", "Notes"],
+      ["14/07/2026", "Tim", "Gambit", "Ewenn", "Thor", "Tim", "12", ""],
+    ]);
+    expect(Array.isArray(rows)).toBe(true);
+    if (Array.isArray(rows)) {
+      expect(rows[0]?.winnerRemainingHealth).toBe("12");
+    }
+  });
+});
+
+describe("normalizePlayedAt", () => {
+  it("accepts ISO and french dates", () => {
+    expect(normalizePlayedAt("2024-01-01")).toBe("2024-01-01");
+    expect(normalizePlayedAt("14/07/2026")).toBe("2026-07-14");
+  });
 });
 
 describe("parseHistoricalMatchRow", () => {
+  it("accepts french date format", () => {
+    const parsed = parseHistoricalMatchRow({
+      rowNumber: 2,
+      playedAt: "14/07/2026",
+      player1: "Tim",
+      hero1: "Gambit",
+      player2: "Ewenn",
+      hero2: "Thor",
+      winner: "Tim",
+      winnerRemainingHealth: "10",
+      notes: "",
+    });
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) {
+      expect(parsed.row.playedAt).toBe("2026-07-14");
+    }
+  });
   it("accepts a valid row and builds a stable source key", () => {
     const parsed = parseHistoricalMatchRow({
       rowNumber: 2,
