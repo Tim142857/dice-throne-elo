@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getAuthContext } from "@/lib/auth/session";
+import { formatDateTime } from "@/lib/dates";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const metadata: Metadata = {
@@ -68,7 +69,7 @@ export default async function AdminAuditPage() {
               {rows.map((pRow) => (
                 <tr key={pRow.id}>
                   <td className="px-4 py-3 whitespace-nowrap">
-                    {new Date(pRow.created_at).toLocaleString("fr-FR")}
+                    {formatDateTime(pRow.created_at)}
                   </td>
                   <td className="px-4 py-3 font-medium">{pRow.action}</td>
                   <td className="px-4 py-3 text-zinc-600">

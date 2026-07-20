@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { setHeroActiveAction, updateHeroAction } from "@/app/actions/admin-heroes";
+import { formatDateTime } from "@/lib/dates";
 
 type HeroAdminCardProps = {
   heroId: string;
@@ -26,7 +27,7 @@ export function HeroAdminCard({ heroId, name, slug, isActive, updatedAt }: HeroA
           <h2 className="text-lg font-medium text-zinc-950">{name}</h2>
           <p className="text-xs text-zinc-500">
             /{slug} · {isActive ? "Actif" : "Inactif"} · maj{" "}
-            {new Date(updatedAt).toLocaleString("fr-FR")}
+            {formatDateTime(updatedAt)}
           </p>
         </div>
         <form

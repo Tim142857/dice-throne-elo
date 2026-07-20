@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { getHeroConfrontation, listHeroesForSelect } from "@/lib/stats/queries";
+import { formatDate } from "@/lib/dates";
 
 export const metadata: Metadata = {
   title: "Confrontation héros",
@@ -130,8 +131,8 @@ export default async function HeroConfrontationPage({ searchParams }: PageProps)
               <ul className="mt-3 divide-y divide-zinc-100 text-sm">
                 {view.recentMatches.map((pMatch) => (
                   <li key={pMatch.id} className="py-2">
-                    <Link href={`/matchs/${pMatch.id}`} className="font-medium hover:underline">
-                      {pMatch.playedAt} · {pMatch.player1Pseudo} vs {pMatch.player2Pseudo}
+                    <Link href={`/matchs#match-${pMatch.id}`} className="font-medium hover:underline">
+                      {formatDate(pMatch.playedAt)} · {pMatch.player1Pseudo} vs {pMatch.player2Pseudo}
                     </Link>
                     <p className="text-zinc-500">Vainqueur héros : {pMatch.winnerHeroName}</p>
                   </li>

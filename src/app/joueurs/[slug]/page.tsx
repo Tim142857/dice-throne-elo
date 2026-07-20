@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import { EloSparkline } from "@/components/rankings/elo-sparkline";
 import { RecentFormStrip } from "@/components/rankings/recent-form-strip";
+import { formatDate } from "@/lib/dates";
 import { getAuthContext } from "@/lib/auth/session";
 import { getPlayerPublicProfileBySlug } from "@/lib/rankings/queries";
 
@@ -65,8 +66,8 @@ export default async function PlayerProfilePage({ params }: PlayerProfilePagePro
           {isHistorical && profile.profile.status === "preloaded"
             ? "Profil historique"
             : profile.profile.approvedAt
-              ? `Compte depuis le ${new Date(profile.profile.approvedAt).toLocaleDateString("fr-FR")}`
-              : `Profil créé le ${new Date(profile.profile.createdAt).toLocaleDateString("fr-FR")}`}
+              ? `Compte depuis le ${formatDate(profile.profile.approvedAt)}`
+              : `Profil créé le ${formatDate(profile.profile.createdAt)}`}
         </p>
       </header>
 
@@ -278,11 +279,11 @@ export default async function PlayerProfilePage({ params }: PlayerProfilePagePro
             {profile.recentMatches.map((pMatch) => (
               <li key={pMatch.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                 <div>
-                  <Link href={`/matchs/${pMatch.id}`} className="font-medium hover:underline">
+                  <Link href={`/matchs#match-${pMatch.id}`} className="font-medium hover:underline">
                     vs {pMatch.opponentPseudo}
                   </Link>
                   <p className="text-brand-muted">
-                    {pMatch.playedAt} · {pMatch.heroName}
+                    {formatDate(pMatch.playedAt)} · {pMatch.heroName}
                   </p>
                 </div>
                 <span

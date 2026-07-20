@@ -1,3 +1,5 @@
+import { formatDate } from "@/lib/dates";
+
 type EloSparklinePoint = {
   at?: string;
   ratingDisplay: number;
@@ -8,10 +10,7 @@ type EloSparklineProps = {
 };
 
 function formatChartDate(pIso: string): string {
-  return new Date(pIso).toLocaleDateString("fr-FR", {
-    day: "numeric",
-    month: "short",
-  });
+  return formatDate(pIso);
 }
 
 export function EloSparkline({ points }: EloSparklineProps) {

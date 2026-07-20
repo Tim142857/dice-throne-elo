@@ -90,6 +90,7 @@ export async function cancelValidatedMatchAction(
       reason: reasonRaw.length > 0 ? reasonRaw : null,
     });
     revalidateRankingPaths();
+    revalidatePath("/matchs");
     revalidatePath(`/matchs/${matchId}`);
     return actionSuccess(summary, "Match annulé et classements recalculés.");
   } catch (pError) {

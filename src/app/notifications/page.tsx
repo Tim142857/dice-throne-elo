@@ -7,6 +7,7 @@ import {
   markNotificationReadAction,
 } from "@/app/actions/notifications";
 import { getAuthContext } from "@/lib/auth/session";
+import { formatDateTime } from "@/lib/dates";
 import {
   countUnreadNotifications,
   listNotificationsForProfile,
@@ -82,7 +83,7 @@ export default async function NotificationsPage() {
                     </p>
                     <p className="mt-1 text-sm text-zinc-600">{pNotification.message}</p>
                     <p className="mt-2 text-xs text-zinc-500">
-                      {new Date(pNotification.createdAt).toLocaleString("fr-FR")}
+                      {formatDateTime(pNotification.createdAt)}
                     </p>
                     {pNotification.relatedMatchId ? (
                       <Link

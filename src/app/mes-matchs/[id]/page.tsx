@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { MatchActionsPanel } from "@/components/matches/match-actions-panel";
 import { listActiveHeroes } from "@/lib/admin/hero-admin";
 import { getAuthContext } from "@/lib/auth/session";
+import { formatDate, formatDateTime } from "@/lib/dates";
 import { mapHeroRow, type HeroDbRow } from "@/lib/mappers/hero";
 import { getMatchDetails } from "@/lib/matches/match-service";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -79,7 +80,7 @@ export default async function MyMatchDetailPage({ params }: MatchDetailPageProps
       <dl className="grid gap-3 rounded-md border border-zinc-200 bg-white p-5 text-sm sm:grid-cols-2">
         <div>
           <dt className="text-zinc-500">Date jouée</dt>
-          <dd className="font-medium">{details.proposal.playedAt}</dd>
+          <dd className="font-medium">{formatDate(details.proposal.playedAt)}</dd>
         </div>
         <div>
           <dt className="text-zinc-500">Vainqueur</dt>
@@ -112,7 +113,7 @@ export default async function MyMatchDetailPage({ params }: MatchDetailPageProps
           <div className="sm:col-span-2">
             <dt className="text-zinc-500">Validé le</dt>
             <dd className="font-medium">
-              {new Date(details.match.validatedAt).toLocaleString("fr-FR")}
+              {formatDateTime(details.match.validatedAt)}
             </dd>
           </div>
         ) : null}

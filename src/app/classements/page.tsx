@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { PageHero } from "@/components/layout/page-hero";
 import { brandImages } from "@/lib/branding";
+import { formatDate } from "@/lib/dates";
 import { listGeneralRankings, type GeneralRankingSort } from "@/lib/rankings/queries";
 
 export const metadata: Metadata = {
@@ -119,9 +120,7 @@ export default async function ClassementsPage({ searchParams }: ClassementsPageP
                   <td className="px-3 py-3">{pRow.currentStreak}</td>
                   <td className="px-3 py-3">{pRow.distinctOpponents}</td>
                   <td className="px-3 py-3 text-zinc-600">
-                    {pRow.lastValidatedMatchAt
-                      ? new Date(pRow.lastValidatedMatchAt).toLocaleDateString("fr-FR")
-                      : "—"}
+                    {pRow.lastValidatedMatchAt ? formatDate(pRow.lastValidatedMatchAt) : "—"}
                   </td>
                 </tr>
               ))}

@@ -7,6 +7,7 @@ import {
   approveAccountRequestAction,
   rejectAccountRequestAction,
 } from "@/app/actions/admin-accounts";
+import { formatDateTime } from "@/lib/dates";
 
 type PreloadedOption = {
   id: string;
@@ -40,7 +41,7 @@ export function AccountRequestReviewCard({
       <div className="flex flex-col gap-1">
         <h2 className="text-lg font-medium text-zinc-950">{requestedPseudo}</h2>
         <p className="text-xs text-zinc-500">
-          Demande du {new Date(createdAt).toLocaleString("fr-FR")}
+          Demande du {formatDateTime(createdAt)}
         </p>
       </div>
       {presentationMessage ? (

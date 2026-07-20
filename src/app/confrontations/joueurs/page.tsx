@@ -5,6 +5,7 @@ import {
   getPlayerConfrontation,
   listPublicPlayersForSelect,
 } from "@/lib/stats/queries";
+import { formatDate } from "@/lib/dates";
 
 export const metadata: Metadata = {
   title: "Confrontation joueurs",
@@ -136,8 +137,8 @@ export default async function PlayerConfrontationPage({ searchParams }: PageProp
               <ul className="mt-3 divide-y divide-zinc-100 text-sm">
                 {view.recentMatches.map((pMatch) => (
                   <li key={pMatch.id} className="py-2">
-                    <Link href={`/matchs/${pMatch.id}`} className="font-medium hover:underline">
-                      {pMatch.playedAt} · vainqueur {pMatch.winnerPseudo}
+                    <Link href={`/matchs#match-${pMatch.id}`} className="font-medium hover:underline">
+                      {formatDate(pMatch.playedAt)} · vainqueur {pMatch.winnerPseudo}
                     </Link>
                     <p className="text-zinc-500">
                       {pMatch.heroAName} vs {pMatch.heroBName}

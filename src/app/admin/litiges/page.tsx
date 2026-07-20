@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { DisputeResolvePanel } from "@/components/admin/dispute-resolve-panel";
 import { listActiveHeroes } from "@/lib/admin/hero-admin";
 import { getAuthContext } from "@/lib/auth/session";
+import { formatDate } from "@/lib/dates";
 import {
   listDisputedMatches,
   listProposalsForMatch,
@@ -92,7 +93,7 @@ export default async function AdminDisputesPage() {
                   {item.player1.pseudo} vs {item.player2.pseudo}
                 </h2>
                 <p className="mt-1 text-sm text-zinc-600">
-                  Joué le {item.proposal.playedAt} ·{" "}
+                  Joué le {formatDate(item.proposal.playedAt)} ·{" "}
                   <Link href={`/mes-matchs/${item.match.id}`} className="underline hover:text-zinc-950">
                     voir le détail
                   </Link>

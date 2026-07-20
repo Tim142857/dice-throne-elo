@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getHeroDetailStats } from "@/lib/stats/queries";
+import { formatDate } from "@/lib/dates";
 
 type HeroDetailPageProps = {
   params: Promise<{ slug: string }>;
@@ -133,11 +134,11 @@ export default async function HeroDetailPage({ params, searchParams }: HeroDetai
             {stats.recentMatches.map((pMatch) => (
               <li key={pMatch.id} className="flex flex-wrap justify-between gap-2 py-2">
                 <div>
-                  <Link href={`/matchs/${pMatch.id}`} className="font-medium hover:underline">
+                  <Link href={`/matchs#match-${pMatch.id}`} className="font-medium hover:underline">
                     {pMatch.playerPseudo}
                   </Link>
                   <p className="text-zinc-500">
-                    {pMatch.playedAt} · vs {pMatch.opponentHeroName}
+                    {formatDate(pMatch.playedAt)} · vs {pMatch.opponentHeroName}
                   </p>
                 </div>
                 <span className={pMatch.won ? "text-elo-gain" : "text-elo-loss"}>

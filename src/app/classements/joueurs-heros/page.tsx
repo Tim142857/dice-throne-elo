@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { listPlayerHeroRankings } from "@/lib/rankings/queries";
+import { formatDate } from "@/lib/dates";
 
 export const metadata: Metadata = {
   title: "Classement joueur–héros",
@@ -114,9 +115,7 @@ export default async function PlayerHeroRankingsPage({
                   <td className="px-3 py-3">{pRow.lossesCount}</td>
                   <td className="px-3 py-3">{pRow.winRateLabel}</td>
                   <td className="px-3 py-3 text-zinc-600">
-                    {pRow.lastUsedAt
-                      ? new Date(pRow.lastUsedAt).toLocaleDateString("fr-FR")
-                      : "—"}
+                    {pRow.lastUsedAt ? formatDate(pRow.lastUsedAt) : "—"}
                   </td>
                 </tr>
               ))}

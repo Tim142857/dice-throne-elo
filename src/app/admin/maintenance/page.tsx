@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { MaintenancePanel } from "@/components/admin/maintenance-panel";
 import { getAuthContext } from "@/lib/auth/session";
+import { formatDate } from "@/lib/dates";
 import { listValidatedMatchesForAdmin } from "@/lib/matches/recompute-ratings";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -59,7 +60,7 @@ export default async function AdminMaintenancePage() {
       <MaintenancePanel
         validatedMatches={validatedMatches.map((pMatch) => ({
           id: pMatch.id,
-          label: `${pseudoById.get(pMatch.player1Id) ?? "?"} vs ${pseudoById.get(pMatch.player2Id) ?? "?"} · ${pMatch.playedAt}`,
+          label: `${pseudoById.get(pMatch.player1Id) ?? "?"} vs ${pseudoById.get(pMatch.player2Id) ?? "?"} · ${formatDate(pMatch.playedAt)}`,
         }))}
       />
     </main>

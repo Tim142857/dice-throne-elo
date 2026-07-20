@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getAuthContext } from "@/lib/auth/session";
+import { formatDate } from "@/lib/dates";
 import { listMatchesForProfile } from "@/lib/matches/match-service";
 import type { MatchStatus } from "@/types/domain";
 
@@ -140,7 +141,7 @@ export default async function MyMatchesPage({ searchParams }: MesMatchsPageProps
                   <span className="text-xs text-zinc-500">{statusLabel(pItem.match.status)}</span>
                 </div>
                 <p className="mt-1 text-sm text-zinc-600">
-                  Joué le {pItem.proposal.playedAt} · vainqueur{" "}
+                  Joué le {formatDate(pItem.proposal.playedAt)} · vainqueur{" "}
                   {pItem.proposal.winnerProfileId === pItem.player1.id
                     ? pItem.player1.pseudo
                     : pItem.player2.pseudo}
