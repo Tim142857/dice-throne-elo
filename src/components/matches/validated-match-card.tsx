@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import type { PublicValidatedMatch } from "@/lib/matches/public-matches";
 import { formatDate } from "@/lib/dates";
+import { formatMatchFinalHealthScore } from "@/domain/matches/final-health";
 
 type ValidatedMatchCardProps = {
   match: PublicValidatedMatch;
@@ -34,10 +35,17 @@ export function ValidatedMatchCard({ match }: ValidatedMatchCardProps) {
           <dd className="font-medium text-zinc-900">{formatDate(match.playedAt)}</dd>
         </div>
         <div>
-          <dt className="text-zinc-500">Vainqueur</dt>
+          <dt className="text-zinc-500">Résultat (PV)</dt>
           <dd className="font-medium text-zinc-900">
-            {winnerPseudo} ({match.winnerRemainingHealth} PV)
+            {formatMatchFinalHealthScore(
+              match.player1RemainingHealth,
+              match.player2RemainingHealth,
+            )}
           </dd>
+        </div>
+        <div>
+          <dt className="text-zinc-500">Vainqueur</dt>
+          <dd className="font-medium text-zinc-900">{winnerPseudo}</dd>
         </div>
       </dl>
     </article>

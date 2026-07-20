@@ -10,7 +10,8 @@ describe("createMatchSchema", () => {
     player2Id: "33333333-3333-4333-8333-333333333333",
     hero2Id: "44444444-4444-4444-8444-444444444444",
     winnerProfileId: "11111111-1111-4111-8111-111111111111",
-    winnerRemainingHealth: 12,
+    player1RemainingHealth: 12,
+    player2RemainingHealth: 0,
   };
 
   it("accepts a valid match payload", () => {

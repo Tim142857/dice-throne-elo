@@ -194,18 +194,35 @@ export function CreateMatchForm({
         </select>
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">PV restants du vainqueur</span>
-        <input
-          name="winnerRemainingHealth"
-          type="number"
-          required
-          min={0}
-          max={50}
-          defaultValue={10}
-          className="rounded-md border border-zinc-300 px-3 py-2"
-        />
-      </label>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium">PV restants — joueur 1</span>
+          <input
+            name="player1RemainingHealth"
+            type="number"
+            required
+            min={0}
+            max={50}
+            defaultValue={15}
+            className="rounded-md border border-zinc-300 px-3 py-2"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium">PV restants — joueur 2</span>
+          <input
+            name="player2RemainingHealth"
+            type="number"
+            required
+            min={0}
+            max={50}
+            defaultValue={0}
+            className="rounded-md border border-zinc-300 px-3 py-2"
+          />
+        </label>
+      </div>
+      <p className="text-xs text-zinc-500">
+        KO : le perdant est à 0 PV. Fin du timer : indiquez les PV restants des deux joueurs.
+      </p>
 
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium">Notes (optionnel)</span>

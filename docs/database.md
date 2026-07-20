@@ -14,7 +14,8 @@ Le schéma PostgreSQL est versionné dans `supabase/migrations/`.
 | `20260719100500_seed_season_players_heroes.sql` | Saison globale, 7 joueurs historiques, 44 héros |
 | `20260719100600_account_request_pending_pseudo_unique.sql` | Unicité des pseudos sur demandes `pending` |
 | `20260719100700_replace_season_ratings.sql` | RPC atomique de recalcul Elo + verrou |
-| `20260719100800_add_playable_heroes.sql` | 10 héros jouables supplémentaires |
+| `20260719100900_match_proposals_final_health.sql` | PV finaux des deux joueurs |
+| `20260719101000_achievements.sql` | Éligibilité badges + `player_achievements` |
 
 ## Appliquer les migrations
 

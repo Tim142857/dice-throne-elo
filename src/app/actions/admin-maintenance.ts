@@ -91,9 +91,34 @@ export async function cancelValidatedMatchAction(
     });
     revalidateRankingPaths();
     revalidatePath("/matchs");
+    revalidatePath("/records");
     revalidatePath(`/matchs/${matchId}`);
     return actionSuccess(summary, "Match annulé et classements recalculés.");
   } catch (pError) {
     return actionError(pError instanceof Error ? pError.message : "Échec de l’annulation.");
+  }
+}
+
+export async function recomputeAchievementsAction(): Promise<
+  ActionResult<{ added: number; removed: number }>
+> {
+  const admin = await requireAdminProfile();
+  if (!admin.ok) {
+    return actionError(admin.error);
+  }
+
+  try {
+    const { recomputeAllAchievements } = await import("@/lib/achievements/service");
+    const summary = await recomputeAllAchievements({
+      actorProfileId: admin.profile.id,
+    });
+    revalidateRankingPaths();
+    revalidatePath("/records");
+    return actionSuccess(
+      summary,
+      `Badges recalculés : +${summary.added} / −${summary.removed}.`,
+    );
+  } catch (pError) {
+    return actionError(pError instanceof Error ? pError.message : "Échec du recalcul des badges.");
   }
 }

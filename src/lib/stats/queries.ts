@@ -7,6 +7,7 @@ import {
   pickFavorableMatchups,
   type MatchFact,
 } from "@/domain/stats/aggregates";
+import { computeConfrontationHealthStats } from "@/domain/stats/health";
 import { mapProfileRow, type ProfileDbRow } from "@/lib/mappers/account";
 import { mapHeroRow, type HeroDbRow } from "@/lib/mappers/hero";
 import {
@@ -55,6 +56,8 @@ async function loadValidatedMatchFacts(): Promise<MatchFact[]> {
       hero1Id: proposal.hero1Id,
       hero2Id: proposal.hero2Id,
       winnerProfileId: proposal.winnerProfileId,
+      winnerRemainingHealth: proposal.winnerRemainingHealth,
+      achievementsEligible: match.achievementsEligible,
     });
   }
   return facts;
@@ -281,7 +284,15 @@ export type PlayerConfrontationView = {
     winnerPseudo: string;
     heroAName: string;
     heroBName: string;
+    winnerRemainingHealth: number;
   }>;
+  health: {
+    averageHpWhenAWins: number | null;
+    averageHpWhenBWins: number | null;
+    medianWinnerHp: number | null;
+    closestWin: { winnerProfileId: string; hp: number; matchId: string } | null;
+    largestWin: { winnerProfileId: string; hp: number; matchId: string } | null;
+  };
 };
 
 export async function getPlayerConfrontation(
@@ -360,8 +371,26 @@ export async function getPlayerConfrontation(
       winnerPseudo: fact.winnerProfileId === playerA.id ? playerA.pseudo : playerB.pseudo,
       heroAName: heroesById.get(aIsPlayer1 ? fact.hero1Id : fact.hero2Id)?.name ?? "?",
       heroBName: heroesById.get(aIsPlayer1 ? fact.hero2Id : fact.hero1Id)?.name ?? "?",
+      winnerRemainingHealth: fact.winnerRemainingHealth,
     });
   }
+
+  const pairFacts = facts.filter(
+    (pFact) =>
+      (pFact.player1Id === playerA.id && pFact.player2Id === playerB.id) ||
+      (pFact.player1Id === playerB.id && pFact.player2Id === playerA.id),
+  );
+  const health = computeConfrontationHealthStats(
+    playerA.id,
+    playerB.id,
+    pairFacts.map((pFact) => ({
+      matchId: pFact.matchId,
+      validatedAt: pFact.validatedAt,
+      winnerProfileId: pFact.winnerProfileId,
+      winnerRemainingHealth: pFact.winnerRemainingHealth,
+      pvReliable: true,
+    })),
+  );
 
   return {
     playerA,
@@ -376,6 +405,7 @@ export async function getPlayerConfrontation(
     heroesA: mapHeroUsage(aggregate.heroesUsedByA),
     heroesB: mapHeroUsage(aggregate.heroesUsedByB),
     recentMatches,
+    health,
   };
 }
 

@@ -4,6 +4,7 @@ import {
   getOpponentProfileId,
   resolveActorRole,
 } from "@/domain/matches/workflow";
+import { getWinnerRemainingHealthFromFinalHealth } from "@/domain/matches/final-health";
 import { assertAdminProfile, createNotification, writeAuditLog } from "@/lib/admin/audit";
 import { listActiveHeroes } from "@/lib/admin/hero-admin";
 import {
@@ -120,7 +121,14 @@ async function insertProposal(pInput: {
       player2_id: pInput.fields.player2Id,
       hero2_id: pInput.fields.hero2Id,
       winner_profile_id: pInput.fields.winnerProfileId,
-      winner_remaining_health: pInput.fields.winnerRemainingHealth,
+      winner_remaining_health: getWinnerRemainingHealthFromFinalHealth({
+        player1Id: pInput.fields.player1Id,
+        winnerProfileId: pInput.fields.winnerProfileId,
+        player1RemainingHealth: pInput.fields.player1RemainingHealth,
+        player2RemainingHealth: pInput.fields.player2RemainingHealth,
+      }),
+      player1_remaining_health: pInput.fields.player1RemainingHealth,
+      player2_remaining_health: pInput.fields.player2RemainingHealth,
       notes: pInput.fields.notes,
       played_at: pInput.fields.playedAt,
     })
@@ -462,6 +470,17 @@ async function finalizeValidation(pInput: {
     proposal,
     processedAt: validatedAt,
   });
+
+  try {
+    const { evaluateAchievementsAfterValidation } = await import("@/lib/achievements/service");
+    await evaluateAchievementsAfterValidation({
+      matchId: pInput.match.id,
+      player1Id: proposal.player1Id,
+      player2Id: proposal.player2Id,
+    });
+  } catch {
+    // Achievements must not block match validation; admin recompute can repair.
+  }
 
   await recordAction({
     matchId: pInput.match.id,

@@ -61,6 +61,7 @@ describe("parseHistoricalMatchRow", () => {
       hero2: "Thor",
       winner: "Tim",
       winnerRemainingHealth: "10",
+      player2RemainingHealth: "",
       notes: "",
     });
     expect(parsed.ok).toBe(true);
@@ -78,6 +79,7 @@ describe("parseHistoricalMatchRow", () => {
       hero2: "Thor",
       winner: "Tim",
       winnerRemainingHealth: "10",
+      player2RemainingHealth: "",
       notes: "",
     });
     expect(parsed.ok).toBe(true);
@@ -97,6 +99,7 @@ describe("parseHistoricalMatchRow", () => {
       hero2: "Thor",
       winner: "Flo",
       winnerRemainingHealth: "10",
+      player2RemainingHealth: "",
       notes: "",
     });
     expect(parsed.ok).toBe(false);

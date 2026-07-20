@@ -14,13 +14,20 @@ function formatChartDate(pIso: string): string {
 }
 
 export function EloSparkline({ points }: EloSparklineProps) {
-  if (points.length < 2) {
+  const sortedPoints = [...points].sort((pLeft, pRight) => {
+    if (!pLeft.at || !pRight.at) {
+      return 0;
+    }
+    return pLeft.at.localeCompare(pRight.at);
+  });
+
+  if (sortedPoints.length < 2) {
     return (
       <p className="text-sm text-zinc-500">Pas encore assez de matchs pour afficher une courbe.</p>
     );
   }
 
-  const values = points.map((pPoint) => pPoint.ratingDisplay);
+  const values = sortedPoints.map((pPoint) => pPoint.ratingDisplay);
   const min = Math.min(...values);
   const max = Math.max(...values);
   const span = Math.max(max - min, 1);
@@ -37,7 +44,7 @@ export function EloSparkline({ points }: EloSparklineProps) {
     x: paddingLeft + (pIndex / (values.length - 1)) * chartWidth,
     y: paddingTop + chartHeight - ((pValue - min) / span) * chartHeight,
     value: pValue,
-    at: points[pIndex]?.at,
+    at: sortedPoints[pIndex]?.at,
   }));
 
   const linePath = coordinates
@@ -52,8 +59,8 @@ export function EloSparkline({ points }: EloSparklineProps) {
     return { value, y };
   });
 
-  const firstPoint = points[0];
-  const lastPoint = points[points.length - 1];
+  const firstPoint = sortedPoints[0];
+  const lastPoint = sortedPoints[sortedPoints.length - 1];
   const firstLabel = firstPoint?.at ? formatChartDate(firstPoint.at) : "";
   const lastLabel = lastPoint?.at ? formatChartDate(lastPoint.at) : "";
 

@@ -1,8 +1,15 @@
 import { z } from "zod";
 
 import { MATCH_RULES } from "@/domain/constants";
+import { validateMatchFinalHealth } from "@/domain/matches/final-health";
 
 const uuidSchema = z.string().uuid("Identifiant invalide.");
+
+const remainingHealthSchema = z.coerce
+  .number()
+  .int("Les points de vie doivent être un entier.")
+  .min(MATCH_RULES.minRemainingHealth, "Points de vie invalides.")
+  .max(MATCH_RULES.maxRemainingHealth, "Points de vie invalides.");
 
 export const matchProposalFieldsSchema = z
   .object({
@@ -17,11 +24,8 @@ export const matchProposalFieldsSchema = z
     player2Id: uuidSchema,
     hero2Id: uuidSchema,
     winnerProfileId: uuidSchema,
-    winnerRemainingHealth: z.coerce
-      .number()
-      .int("Les points de vie doivent être un entier.")
-      .min(MATCH_RULES.minRemainingHealth, "Points de vie invalides.")
-      .max(MATCH_RULES.maxRemainingHealth, "Points de vie invalides."),
+    player1RemainingHealth: remainingHealthSchema,
+    player2RemainingHealth: remainingHealthSchema,
     notes: z
       .string()
       .trim()
@@ -50,6 +54,15 @@ export const matchProposalFieldsSchema = z
         code: z.ZodIssueCode.custom,
         message: "Le vainqueur doit être l’un des deux joueurs.",
         path: ["winnerProfileId"],
+      });
+    }
+
+    const healthError = validateMatchFinalHealth(pValue);
+    if (healthError) {
+      pCtx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: healthError,
+        path: ["player2RemainingHealth"],
       });
     }
   });

@@ -6,6 +6,7 @@ import { DisputeResolvePanel } from "@/components/admin/dispute-resolve-panel";
 import { listActiveHeroes } from "@/lib/admin/hero-admin";
 import { getAuthContext } from "@/lib/auth/session";
 import { formatDate } from "@/lib/dates";
+import { formatMatchFinalHealthScore } from "@/domain/matches/final-health";
 import {
   listDisputedMatches,
   listProposalsForMatch,
@@ -55,12 +56,13 @@ export default async function AdminDisputesPage() {
           return {
             id: pProposal.id,
             versionNumber: pProposal.versionNumber,
-            label: `${heroNameById.get(pProposal.hero1Id) ?? "?"} vs ${heroNameById.get(pProposal.hero2Id) ?? "?"} · gagnant ${winnerPseudo} (${pProposal.winnerRemainingHealth} PV)`,
+            label: `${heroNameById.get(pProposal.hero1Id) ?? "?"} vs ${heroNameById.get(pProposal.hero2Id) ?? "?"} · ${formatMatchFinalHealthScore(pProposal.player1RemainingHealth, pProposal.player2RemainingHealth)} · gagnant ${winnerPseudo}`,
             playedAt: pProposal.playedAt,
             hero1Id: pProposal.hero1Id,
             hero2Id: pProposal.hero2Id,
             winnerProfileId: pProposal.winnerProfileId,
-            winnerRemainingHealth: pProposal.winnerRemainingHealth,
+            player1RemainingHealth: pProposal.player1RemainingHealth,
+            player2RemainingHealth: pProposal.player2RemainingHealth,
             notes: pProposal.notes,
           };
         }),

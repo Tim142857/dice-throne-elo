@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { MATCH_RULES } from "@/domain/constants";
+import { validateMatchFinalHealth } from "@/domain/matches/final-health";
 import { normalizeText, slugify } from "@/lib/text";
 import { normalizePseudo } from "@/validation/pseudo";
 
@@ -13,6 +14,7 @@ export type HistoricalMatchRawRow = {
   hero2: string;
   winner: string;
   winnerRemainingHealth: string;
+  player2RemainingHealth: string;
   notes: string;
 };
 
@@ -25,6 +27,8 @@ export type HistoricalMatchParsedRow = {
   hero2Name: string;
   winnerPseudo: string;
   winnerRemainingHealth: number;
+  player1RemainingHealth: number;
+  player2RemainingHealth: number;
   notes: string | null;
   importSourceKey: string;
   validatedAt: string;
@@ -52,6 +56,15 @@ const HEADER_ALIASES: Record<keyof Omit<HistoricalMatchRawRow, "rowNumber">, str
     "differencedepv",
     "differencepv",
     "differencehp",
+  ],
+  player2RemainingHealth: [
+    "player2remaininghealth",
+    "pv2",
+    "pvjoueur2",
+    "pvperdant",
+    "loserremaininghealth",
+    "loserhp",
+    "pvadversaire",
   ],
   notes: ["notes", "note", "commentaire", "comments"],
 };
@@ -118,6 +131,7 @@ export function mapCsvHeaders(
       hero2: indexByField.hero2!,
       winner: indexByField.winner!,
       winnerRemainingHealth: indexByField.winnerRemainingHealth!,
+      player2RemainingHealth: indexByField.player2RemainingHealth ?? -1,
       notes: indexByField.notes ?? -1,
     },
   };
@@ -241,6 +255,42 @@ export function parseHistoricalMatchRow(
     };
   }
 
+  const loserHealthRaw = (pRaw.player2RemainingHealth ?? "").trim();
+  let loserHealth = 0;
+  if (loserHealthRaw.length > 0) {
+    loserHealth = Number(loserHealthRaw);
+    if (
+      !Number.isInteger(loserHealth) ||
+      loserHealth < MATCH_RULES.minRemainingHealth ||
+      loserHealth > MATCH_RULES.maxRemainingHealth
+    ) {
+      return {
+        ok: false,
+        issue: {
+          rowNumber: pRaw.rowNumber,
+          message: `PV restants du perdant invalides (0-${MATCH_RULES.maxRemainingHealth}).`,
+        },
+      };
+    }
+  }
+
+  const winnerIsPlayer1 = normalizePseudo(winnerPseudo) === normalizePseudo(player1Pseudo);
+  const player1RemainingHealth = winnerIsPlayer1 ? health : loserHealth;
+  const player2RemainingHealth = winnerIsPlayer1 ? loserHealth : health;
+  const healthError = validateMatchFinalHealth({
+    player1Id: "player1",
+    player2Id: "player2",
+    winnerProfileId: winnerIsPlayer1 ? "player1" : "player2",
+    player1RemainingHealth,
+    player2RemainingHealth,
+  });
+  if (healthError) {
+    return {
+      ok: false,
+      issue: { rowNumber: pRaw.rowNumber, message: healthError },
+    };
+  }
+
   const notesRaw = pRaw.notes.trim();
   if (notesRaw.length > MATCH_RULES.maxNotesLength) {
     return {
@@ -273,6 +323,8 @@ export function parseHistoricalMatchRow(
       hero2Name,
       winnerPseudo,
       winnerRemainingHealth: health,
+      player1RemainingHealth,
+      player2RemainingHealth,
       notes,
       importSourceKey,
       validatedAt: buildValidatedAtForImport(playedAt, pRaw.rowNumber),
@@ -367,6 +419,10 @@ export function rawRowsFromCsvMatrix(pMatrix: string[][]): HistoricalMatchRawRow
       hero2: cells[indexes.hero2] ?? "",
       winner: cells[indexes.winner] ?? "",
       winnerRemainingHealth: cells[indexes.winnerRemainingHealth] ?? "",
+      player2RemainingHealth:
+        indexes.player2RemainingHealth >= 0
+          ? (cells[indexes.player2RemainingHealth] ?? "")
+          : "",
       notes: indexes.notes >= 0 ? (cells[indexes.notes] ?? "") : "",
     });
   }

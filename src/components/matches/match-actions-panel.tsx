@@ -27,7 +27,8 @@ type MatchActionsPanelProps = {
     hero1Id: string;
     hero2Id: string;
     winnerProfileId: string;
-    winnerRemainingHealth: number;
+    player1RemainingHealth: number;
+    player2RemainingHealth: number;
     notes: string | null;
   };
   heroes: HeroOption[];
@@ -188,18 +189,32 @@ export function MatchActionsPanel({
                   <option value={proposal.player2Id}>{player2Pseudo}</option>
                 </select>
               </label>
-              <label className="flex flex-col gap-1 text-sm">
-                <span>PV restants</span>
-                <input
-                  name="winnerRemainingHealth"
-                  type="number"
-                  min={0}
-                  max={50}
-                  required
-                  defaultValue={proposal.winnerRemainingHealth}
-                  className="rounded-md border border-zinc-300 px-3 py-2"
-                />
-              </label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="flex flex-col gap-1 text-sm">
+                  <span>PV restants — {player1Pseudo}</span>
+                  <input
+                    name="player1RemainingHealth"
+                    type="number"
+                    min={0}
+                    max={50}
+                    required
+                    defaultValue={proposal.player1RemainingHealth}
+                    className="rounded-md border border-zinc-300 px-3 py-2"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm">
+                  <span>PV restants — {player2Pseudo}</span>
+                  <input
+                    name="player2RemainingHealth"
+                    type="number"
+                    min={0}
+                    max={50}
+                    required
+                    defaultValue={proposal.player2RemainingHealth}
+                    className="rounded-md border border-zinc-300 px-3 py-2"
+                  />
+                </label>
+              </div>
               <label className="flex flex-col gap-1 text-sm">
                 <span>Notes (optionnel)</span>
                 <textarea

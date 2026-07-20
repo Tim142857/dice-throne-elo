@@ -19,6 +19,8 @@ const base: MatchFact = {
   hero1Id: "h1",
   hero2Id: "h2",
   winnerProfileId: "p1",
+  winnerRemainingHealth: 10,
+  achievementsEligible: true,
 };
 
 describe("aggregateHeroStats", () => {

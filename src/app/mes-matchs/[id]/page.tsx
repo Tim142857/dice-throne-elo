@@ -6,6 +6,7 @@ import { MatchActionsPanel } from "@/components/matches/match-actions-panel";
 import { listActiveHeroes } from "@/lib/admin/hero-admin";
 import { getAuthContext } from "@/lib/auth/session";
 import { formatDate, formatDateTime } from "@/lib/dates";
+import { formatMatchFinalHealthScore } from "@/domain/matches/final-health";
 import { mapHeroRow, type HeroDbRow } from "@/lib/mappers/hero";
 import { getMatchDetails } from "@/lib/matches/match-service";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -83,12 +84,20 @@ export default async function MyMatchDetailPage({ params }: MatchDetailPageProps
           <dd className="font-medium">{formatDate(details.proposal.playedAt)}</dd>
         </div>
         <div>
+          <dt className="text-zinc-500">Résultat (PV)</dt>
+          <dd className="font-medium">
+            {formatMatchFinalHealthScore(
+              details.proposal.player1RemainingHealth,
+              details.proposal.player2RemainingHealth,
+            )}
+          </dd>
+        </div>
+        <div>
           <dt className="text-zinc-500">Vainqueur</dt>
           <dd className="font-medium">
             {details.proposal.winnerProfileId === details.player1.id
               ? details.player1.pseudo
-              : details.player2.pseudo}{" "}
-            ({details.proposal.winnerRemainingHealth} PV)
+              : details.player2.pseudo}
           </dd>
         </div>
         <div>

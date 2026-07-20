@@ -9,6 +9,7 @@ import {
   resolveDisputeKeepProposalAction,
 } from "@/app/actions/admin-disputes";
 import type { ActionResult } from "@/lib/actions/result";
+import { formatMatchFinalHealthScore } from "@/domain/matches/final-health";
 
 type HeroOption = { id: string; label: string };
 type ProposalOption = {
@@ -19,7 +20,8 @@ type ProposalOption = {
   hero1Id: string;
   hero2Id: string;
   winnerProfileId: string;
-  winnerRemainingHealth: number;
+  player1RemainingHealth: number;
+  player2RemainingHealth: number;
   notes: string | null;
 };
 
@@ -176,18 +178,32 @@ export function DisputeResolvePanel({
             <option value={player2Id}>{player2Pseudo}</option>
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span>PV restants</span>
-          <input
-            name="winnerRemainingHealth"
-            type="number"
-            min={0}
-            max={50}
-            required
-            defaultValue={current?.winnerRemainingHealth ?? 10}
-            className="min-h-11 rounded-md border border-zinc-300 px-3 py-2"
-          />
-        </label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 text-sm">
+            <span>PV restants — {player1Pseudo}</span>
+            <input
+              name="player1RemainingHealth"
+              type="number"
+              min={0}
+              max={50}
+              required
+              defaultValue={current?.player1RemainingHealth ?? 15}
+              className="min-h-11 rounded-md border border-zinc-300 px-3 py-2"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span>PV restants — {player2Pseudo}</span>
+            <input
+              name="player2RemainingHealth"
+              type="number"
+              min={0}
+              max={50}
+              required
+              defaultValue={current?.player2RemainingHealth ?? 0}
+              className="min-h-11 rounded-md border border-zinc-300 px-3 py-2"
+            />
+          </label>
+        </div>
         <label className="flex flex-col gap-1 text-sm">
           <span>Notes (optionnel)</span>
           <textarea

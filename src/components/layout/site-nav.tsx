@@ -32,6 +32,9 @@ export function SiteNav({ children, isLoggedIn, unreadCount = 0 }: SiteNavProps)
       <Link href="/matchs" className={linkClassName} onClick={() => setOpen(false)}>
         Matchs
       </Link>
+      <Link href="/records" className={linkClassName} onClick={() => setOpen(false)}>
+        Records
+      </Link>
       <Link href="/confrontations/joueurs" className={linkClassName} onClick={() => setOpen(false)}>
         Confrontations
       </Link>

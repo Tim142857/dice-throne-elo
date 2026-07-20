@@ -6,6 +6,7 @@ import {
   listPublicPlayersForSelect,
 } from "@/lib/stats/queries";
 import { formatDate } from "@/lib/dates";
+import { formatHpStat } from "@/domain/stats/health";
 
 export const metadata: Metadata = {
   title: "Confrontation joueurs",
@@ -130,6 +131,40 @@ export default async function PlayerConfrontationPage({ searchParams }: PageProp
           </section>
 
           <section className="rounded-md border border-zinc-200 bg-white p-5">
+            <h2 className="text-lg font-medium">Points de vie</h2>
+            <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+              <div>
+                <dt className="text-zinc-500">PV moyens — victoires {view.playerA.pseudo}</dt>
+                <dd className="font-medium">{formatHpStat(view.health.averageHpWhenAWins)}</dd>
+              </div>
+              <div>
+                <dt className="text-zinc-500">PV moyens — victoires {view.playerB.pseudo}</dt>
+                <dd className="font-medium">{formatHpStat(view.health.averageHpWhenBWins)}</dd>
+              </div>
+              <div>
+                <dt className="text-zinc-500">Médiane des PV vainqueur</dt>
+                <dd className="font-medium">{formatHpStat(view.health.medianWinnerHp)}</dd>
+              </div>
+              <div>
+                <dt className="text-zinc-500">Match le plus serré</dt>
+                <dd className="font-medium">
+                  {view.health.closestWin
+                    ? `${view.health.closestWin.winnerProfileId === view.playerA.id ? view.playerA.pseudo : view.playerB.pseudo}, ${view.health.closestWin.hp} PV`
+                    : "—"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-zinc-500">Victoire la plus large</dt>
+                <dd className="font-medium">
+                  {view.health.largestWin
+                    ? `${view.health.largestWin.winnerProfileId === view.playerA.id ? view.playerA.pseudo : view.playerB.pseudo}, ${view.health.largestWin.hp} PV`
+                    : "—"}
+                </dd>
+              </div>
+            </dl>
+          </section>
+
+          <section className="rounded-md border border-zinc-200 bg-white p-5">
             <h2 className="text-lg font-medium">Derniers résultats</h2>
             {view.recentMatches.length === 0 ? (
               <p className="mt-3 text-sm text-zinc-500">Aucun match.</p>
@@ -138,7 +173,8 @@ export default async function PlayerConfrontationPage({ searchParams }: PageProp
                 {view.recentMatches.map((pMatch) => (
                   <li key={pMatch.id} className="py-2">
                     <Link href={`/matchs#match-${pMatch.id}`} className="font-medium hover:underline">
-                      {formatDate(pMatch.playedAt)} · vainqueur {pMatch.winnerPseudo}
+                      {formatDate(pMatch.playedAt)} · vainqueur {pMatch.winnerPseudo} (
+                      {pMatch.winnerRemainingHealth} PV)
                     </Link>
                     <p className="text-zinc-500">
                       {pMatch.heroAName} vs {pMatch.heroBName}

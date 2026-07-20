@@ -24,7 +24,8 @@ export type PublicValidatedMatch = {
     heroName: string;
   };
   winnerProfileId: string;
-  winnerRemainingHealth: number;
+  player1RemainingHealth: number;
+  player2RemainingHealth: number;
 };
 
 export async function listPublicValidatedMatches(
@@ -122,7 +123,8 @@ export async function listPublicValidatedMatches(
         heroName: hero2.name,
       },
       winnerProfileId: proposal.winnerProfileId,
-      winnerRemainingHealth: proposal.winnerRemainingHealth,
+      player1RemainingHealth: proposal.player1RemainingHealth,
+      player2RemainingHealth: proposal.player2RemainingHealth,
     });
   }
 

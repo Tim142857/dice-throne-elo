@@ -36,7 +36,8 @@ export async function createNotification(pInput: {
     | "correctionAccepted"
     | "correctionRejected"
     | "matchDisputed"
-    | "adminDecision";
+    | "adminDecision"
+    | "achievementUnlocked";
   title: string;
   message: string;
   relatedMatchId?: string | null;

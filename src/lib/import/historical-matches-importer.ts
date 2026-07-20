@@ -178,6 +178,7 @@ async function importParsedRow(pRow: HistoricalMatchParsedRow): Promise<"importe
       validated_at: pRow.validatedAt,
       validated_by_profile_id: player2Id,
       import_source_key: pRow.importSourceKey,
+      achievements_eligible: false,
     })
     .select("id")
     .single();
@@ -199,6 +200,8 @@ async function importParsedRow(pRow: HistoricalMatchParsedRow): Promise<"importe
       hero2_id: hero2Id,
       winner_profile_id: winnerId,
       winner_remaining_health: pRow.winnerRemainingHealth,
+      player1_remaining_health: pRow.player1RemainingHealth,
+      player2_remaining_health: pRow.player2RemainingHealth,
       notes: pRow.notes,
       played_at: pRow.playedAt,
     })

@@ -5,9 +5,12 @@ import type { ReactNode } from "react";
 
 import { EloSparkline } from "@/components/rankings/elo-sparkline";
 import { RecentFormStrip } from "@/components/rankings/recent-form-strip";
+import { AchievementBoard } from "@/components/achievements/achievement-board";
 import { formatDate } from "@/lib/dates";
 import { getAuthContext } from "@/lib/auth/session";
+import { getAchievementProgressForProfile } from "@/lib/achievements/service";
 import { getPlayerPublicProfileBySlug } from "@/lib/rankings/queries";
+import { formatHpStat } from "@/domain/stats/health";
 
 type PlayerProfilePageProps = {
   params: Promise<{ slug: string }>;
@@ -43,6 +46,7 @@ export default async function PlayerProfilePage({ params }: PlayerProfilePagePro
   }
 
   const profile = profileResult;
+  const achievements = await getAchievementProgressForProfile(profile.profile.id).catch(() => null);
   const isOwnProfile = authContext?.profile?.slug === profile.profile.slug;
   const isHistorical = profile.profile.status === "preloaded" || !profile.profile.approvedAt;
 
@@ -207,6 +211,40 @@ export default async function PlayerProfilePage({ params }: PlayerProfilePagePro
       </section>
 
       <section className="brand-card rounded-2xl p-6">
+        <h2 className="text-lg font-bold text-violet-950">Points de vie (victoires)</h2>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <Stat label="Moyenne" value={formatHpStat(profile.healthStats.averageWinnerHp)} />
+          <Stat label="Médiane" value={formatHpStat(profile.healthStats.medianWinnerHp)} />
+          <Stat
+            label="Victoire la plus serrée"
+            value={
+              profile.healthStats.closestWinHp === null
+                ? "—"
+                : `${profile.healthStats.closestWinHp} PV`
+            }
+          />
+          <Stat
+            label="Victoire la plus large"
+            value={
+              profile.healthStats.largestWinHp === null
+                ? "—"
+                : `${profile.healthStats.largestWinHp} PV`
+            }
+          />
+          <Stat label="Victoires ≤ 5 PV" value={String(profile.healthStats.winsWithAtMost5Hp)} />
+          <Stat label="Victoires ≥ 20 PV" value={String(profile.healthStats.winsWithAtLeast20Hp)} />
+        </div>
+      </section>
+
+      {achievements ? (
+        <AchievementBoard
+          owned={achievements.owned}
+          progress={achievements.progress}
+          definitions={achievements.definitions}
+        />
+      ) : null}
+
+      <section className="brand-card rounded-2xl p-6">
         <h2 className="text-lg font-bold text-violet-950">Forme récente</h2>
         <div className="mt-4">
           <RecentFormStrip results={profile.recentForm} />
@@ -284,6 +322,7 @@ export default async function PlayerProfilePage({ params }: PlayerProfilePagePro
                   </Link>
                   <p className="text-brand-muted">
                     {formatDate(pMatch.playedAt)} · {pMatch.heroName}
+                    {pMatch.won ? ` · ${pMatch.winnerRemainingHealth} PV` : ""}
                   </p>
                 </div>
                 <span

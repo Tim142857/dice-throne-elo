@@ -1,9 +1,11 @@
 import { roundRatingForDisplay } from "@/domain/elo/calculate";
+import { buildEloHistoryPoints } from "@/domain/rankings/elo-history";
 import {
   assignCompetitionRanks,
   computeBestWinStreak,
   formatWinRate,
 } from "@/domain/rankings/ranks";
+import { computePlayerHealthStats } from "@/domain/stats/health";
 import {
   pickHeroWinRateExtremes,
   pickOpponentExtremes,
@@ -285,7 +287,16 @@ export type PlayerPublicProfile = {
     opponentSlug: string;
     won: boolean;
     heroName: string;
+    winnerRemainingHealth: number;
   }>;
+  healthStats: {
+    averageWinnerHp: number | null;
+    medianWinnerHp: number | null;
+    closestWinHp: number | null;
+    largestWinHp: number | null;
+    winsWithAtMost5Hp: number;
+    winsWithAtLeast20Hp: number;
+  };
   eloHistory: Array<{ at: string; rating: number; ratingDisplay: number }>;
   recordsVsOpponents: Array<{
     opponentPseudo: string;
@@ -400,6 +411,13 @@ export async function getPlayerPublicProfileBySlug(
   const recentMatches: PlayerPublicProfile["recentMatches"] = [];
   const resultsChronological: boolean[] = [];
   const vsMap = new Map<string, { pseudo: string; slug: string; wins: number; losses: number }>();
+  const healthFacts: Array<{
+    matchId: string;
+    validatedAt: string;
+    winnerProfileId: string;
+    winnerRemainingHealth: number;
+    pvReliable: boolean;
+  }> = [];
 
   for (const row of [...(matchesResponse.data ?? [])].reverse()) {
     const match = mapMatchRow(row as MatchDbRow);
@@ -443,6 +461,14 @@ export async function getPlayerPublicProfileBySlug(
     }
     vsMap.set(opponent.id, vs);
 
+    healthFacts.push({
+      matchId: match.id,
+      validatedAt: match.validatedAt,
+      winnerProfileId: proposal.winnerProfileId,
+      winnerRemainingHealth: proposal.winnerRemainingHealth,
+      pvReliable: true,
+    });
+
     recentMatches.unshift({
       id: match.id,
       playedAt: proposal.playedAt,
@@ -450,8 +476,11 @@ export async function getPlayerPublicProfileBySlug(
       opponentSlug: opponent.slug,
       won,
       heroName: hero.name,
+      winnerRemainingHealth: proposal.winnerRemainingHealth,
     });
   }
+
+  const healthStats = computePlayerHealthStats(profile.id, healthFacts);
 
   const ratingEvents = (eventsResponse.data ?? []) as Array<{
     processed_at: string;
@@ -459,23 +488,13 @@ export async function getPlayerPublicProfileBySlug(
     rating_change: string | number;
   }>;
 
-  const eloHistory = ratingEvents.map((pEvent) => ({
-    at: pEvent.processed_at,
-    rating: toNumber(pEvent.rating_after),
-    ratingDisplay: roundRatingForDisplay(toNumber(pEvent.rating_after)),
-  }));
-
-  const eloHistoryWithStart =
-    eloHistory.length > 0
-      ? [
-          {
-            at: profile.createdAt,
-            rating: 1000,
-            ratingDisplay: 1000,
-          },
-          ...eloHistory,
-        ]
-      : eloHistory;
+  const eloHistory = buildEloHistoryPoints(
+    ratingEvents.map((pEvent) => ({
+      processedAt: pEvent.processed_at,
+      ratingAfter: toNumber(pEvent.rating_after),
+      ratingDisplay: roundRatingForDisplay(toNumber(pEvent.rating_after)),
+    })),
+  );
 
   const recentRatingChanges = ratingEvents.slice(-5).map((pEvent) => toNumber(pEvent.rating_change));
   const eloDeltaRecent5 =
@@ -554,7 +573,15 @@ export async function getPlayerPublicProfileBySlug(
     recentMatches: recentMatches.slice(0, 20),
     recentForm: resultsChronological.slice(-10),
     eloDeltaRecent5,
-    eloHistory: eloHistoryWithStart,
+    healthStats: {
+      averageWinnerHp: healthStats.averageWinnerHp,
+      medianWinnerHp: healthStats.medianWinnerHp,
+      closestWinHp: healthStats.closestWinHp,
+      largestWinHp: healthStats.largestWinHp,
+      winsWithAtMost5Hp: healthStats.winsWithAtMost5Hp,
+      winsWithAtLeast20Hp: healthStats.winsWithAtLeast20Hp,
+    },
+    eloHistory,
     recordsVsOpponents,
   };
 }

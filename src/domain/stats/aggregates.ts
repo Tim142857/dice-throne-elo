@@ -9,6 +9,8 @@ export type MatchFact = {
   hero1Id: string;
   hero2Id: string;
   winnerProfileId: string;
+  winnerRemainingHealth: number;
+  achievementsEligible: boolean;
 };
 
 export type HeroMatchup = {

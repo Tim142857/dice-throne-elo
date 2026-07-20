@@ -306,10 +306,22 @@ export async function cancelValidatedMatchByAdmin(pInput: {
     afterData: { status: "cancelledByAdmin", reason: pInput.reason },
   });
 
-  return recomputeSeasonRatings({
+  const summary = await recomputeSeasonRatings({
     adminProfile: pInput.adminProfile,
     reason: `after_admin_cancel:${match.id}`,
   });
+
+  try {
+    const { recomputeAllAchievements } = await import("@/lib/achievements/service");
+    await recomputeAllAchievements({
+      profileIds: [match.player1Id, match.player2Id],
+      actorProfileId: pInput.adminProfile.id,
+    });
+  } catch {
+    // Badge rebuild is best-effort after cancel.
+  }
+
+  return summary;
 }
 
 export async function listValidatedMatchesForAdmin(): Promise<

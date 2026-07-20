@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 
 import {
   cancelValidatedMatchAction,
+  recomputeAchievementsAction,
   recomputeRatingsAction,
   verifyRatingsConsistencyAction,
 } from "@/app/actions/admin-maintenance";
@@ -56,6 +57,36 @@ export function MaintenancePanel({ validatedMatches }: MaintenancePanelProps) {
           }}
         >
           {isPending ? "Recalcul…" : "Lancer le recalcul"}
+        </button>
+      </section>
+
+      <section className="rounded-md border border-zinc-200 bg-white p-5">
+        <h2 className="text-lg font-medium">Recalcul des badges</h2>
+        <p className="mt-2 text-sm text-zinc-600">
+          Reconstruit les badges à partir des matchs éligibles uniquement. Idempotent. Les badges
+          « tous les héros » déjà acquis sont conservés.
+        </p>
+        <button
+          type="button"
+          disabled={isPending}
+          className="mt-4 rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-50 disabled:opacity-60"
+          onClick={() => {
+            startTransition(async () => {
+              setError("");
+              setMessage("");
+              setDetails("");
+              const result = await recomputeAchievementsAction();
+              if (!result.ok) {
+                setError(result.error);
+                return;
+              }
+              setMessage(result.message ?? "Badges recalculés.");
+              setDetails(`+${result.data.added} ajoutés · −${result.data.removed} retirés`);
+              router.refresh();
+            });
+          }}
+        >
+          {isPending ? "Recalcul…" : "Recalculer les badges"}
         </button>
       </section>
 

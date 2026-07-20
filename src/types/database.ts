@@ -30,7 +30,8 @@ export type NotificationType =
   | "correctionAccepted"
   | "correctionRejected"
   | "matchDisputed"
-  | "adminDecision";
+  | "adminDecision"
+  | "achievementUnlocked";
 
 export type SeasonRow = {
   id: string;
@@ -91,6 +92,7 @@ export type MatchRow = {
   validatedByProfileId: string | null;
   cancelledAt: string | null;
   importSourceKey: string | null;
+  achievementsEligible: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -106,6 +108,8 @@ export type MatchProposalRow = {
   hero2Id: string;
   winnerProfileId: string;
   winnerRemainingHealth: number;
+  player1RemainingHealth: number;
+  player2RemainingHealth: number;
   notes: string | null;
   playedAt: string;
   createdAt: string;

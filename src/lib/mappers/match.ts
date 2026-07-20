@@ -15,6 +15,7 @@ export type MatchDbRow = {
   validated_by_profile_id: string | null;
   cancelled_at: string | null;
   import_source_key: string | null;
+  achievements_eligible?: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -30,6 +31,8 @@ export type MatchProposalDbRow = {
   hero2_id: string;
   winner_profile_id: string;
   winner_remaining_health: number;
+  player1_remaining_health: number;
+  player2_remaining_health: number;
   notes: string | null;
   played_at: string;
   created_at: string;
@@ -61,6 +64,7 @@ export function mapMatchRow(pRow: MatchDbRow): MatchRow {
     validatedByProfileId: pRow.validated_by_profile_id,
     cancelledAt: pRow.cancelled_at,
     importSourceKey: pRow.import_source_key,
+    achievementsEligible: pRow.achievements_eligible ?? true,
     createdAt: pRow.created_at,
     updatedAt: pRow.updated_at,
   };
@@ -78,6 +82,8 @@ export function mapMatchProposalRow(pRow: MatchProposalDbRow): MatchProposalRow 
     hero2Id: pRow.hero2_id,
     winnerProfileId: pRow.winner_profile_id,
     winnerRemainingHealth: pRow.winner_remaining_health,
+    player1RemainingHealth: pRow.player1_remaining_health,
+    player2RemainingHealth: pRow.player2_remaining_health,
     notes: pRow.notes,
     playedAt: pRow.played_at,
     createdAt: pRow.created_at,
