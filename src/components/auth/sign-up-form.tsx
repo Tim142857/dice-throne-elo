@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import { getGoogleOAuthUrlAction, signUpAction } from "@/app/actions/auth";
+import { signUpAction } from "@/app/actions/auth";
 
 export function SignUpForm() {
   const router = useRouter();
@@ -12,8 +12,7 @@ export function SignUpForm() {
   const [isPending, startTransition] = useTransition();
 
   return (
-    <div className="flex flex-col gap-6">
-      <form
+    <form
         className="flex flex-col gap-4"
         onSubmit={(pEvent) => {
           pEvent.preventDefault();
@@ -93,31 +92,6 @@ export function SignUpForm() {
         >
           {isPending ? "Création…" : "Créer mon compte"}
         </button>
-      </form>
-
-      <div className="flex items-center gap-3 text-xs tracking-wide text-zinc-400 uppercase">
-        <div className="h-px flex-1 bg-zinc-200" />
-        ou
-        <div className="h-px flex-1 bg-zinc-200" />
-      </div>
-
-      <button
-        type="button"
-        disabled={isPending}
-        className="rounded-md border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-900 hover:bg-zinc-100 disabled:opacity-60"
-        onClick={() => {
-          startTransition(async () => {
-            const result = await getGoogleOAuthUrlAction("/inscription/finaliser");
-            if (!result.ok) {
-              setError(result.error);
-              return;
-            }
-            window.location.href = result.data.url;
-          });
-        }}
-      >
-        S’inscrire avec Google
-      </button>
-    </div>
+    </form>
   );
 }
