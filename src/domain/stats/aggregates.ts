@@ -113,6 +113,89 @@ export function aggregateHeroStats(pMatches: MatchFact[]): Map<string, HeroAggre
   return result;
 }
 
+export type OpponentHeadToHead = {
+  opponentPseudo: string;
+  opponentSlug: string;
+  wins: number;
+  losses: number;
+  matchesCount: number;
+  winRateLabel: string;
+};
+
+export function pickOpponentExtremes(
+  pRecords: Array<{
+    opponentPseudo: string;
+    opponentSlug: string;
+    wins: number;
+    losses: number;
+  }>,
+  pMinMatches: number,
+): { nemesis: OpponentHeadToHead | null; favoriteOpponent: OpponentHeadToHead | null } {
+  const enriched = pRecords
+    .map((pRow) => {
+      const matchesCount = pRow.wins + pRow.losses;
+      return {
+        ...pRow,
+        matchesCount,
+        winRateLabel: formatWinRate(pRow.wins, matchesCount),
+      };
+    })
+    .filter((pRow) => pRow.matchesCount >= pMinMatches);
+
+  if (enriched.length === 0) {
+    return { nemesis: null, favoriteOpponent: null };
+  }
+
+  const scored = [...enriched].sort(
+    (pLeft, pRight) => pLeft.wins / pLeft.matchesCount - pRight.wins / pRight.matchesCount,
+  );
+
+  return {
+    nemesis: scored[0] ?? null,
+    favoriteOpponent: scored[scored.length - 1] ?? null,
+  };
+}
+
+export type HeroWinRateSummary = {
+  name: string;
+  slug: string;
+  matchesCount: number;
+  winsCount: number;
+  lossesCount: number;
+  winRateLabel: string;
+};
+
+export function pickHeroWinRateExtremes(
+  pHeroes: Array<{
+    name: string;
+    slug: string;
+    matchesCount: number;
+    winsCount: number;
+    lossesCount: number;
+  }>,
+  pMinMatches: number,
+): { best: HeroWinRateSummary | null; worst: HeroWinRateSummary | null } {
+  const enriched = pHeroes
+    .filter((pRow) => pRow.matchesCount >= pMinMatches)
+    .map((pRow) => ({
+      ...pRow,
+      winRateLabel: formatWinRate(pRow.winsCount, pRow.matchesCount),
+    }));
+
+  if (enriched.length === 0) {
+    return { best: null, worst: null };
+  }
+
+  const scored = [...enriched].sort(
+    (pLeft, pRight) => pLeft.winsCount / pLeft.matchesCount - pRight.winsCount / pRight.matchesCount,
+  );
+
+  return {
+    worst: scored[0] ?? null,
+    best: scored[scored.length - 1] ?? null,
+  };
+}
+
 export function pickFavorableMatchups(
   pMatchups: HeroMatchup[],
   pMinMatches: number,

@@ -23,43 +23,21 @@ export function AuthPageShell({ title, description, children }: AuthPageShellPro
             priority
           />
         </div>
-        <div className="relative z-10 flex h-full min-h-72 flex-col justify-between gap-8">
-          <div className="flex flex-col gap-4">
-            <Image
-              src={brandImages.logo}
-              alt="Dice Throne"
-              width={72}
-              height={72}
-              className="rounded-2xl bg-white/10 p-2 ring-1 ring-white/20 backdrop-blur"
-            />
-            <div>
-              <p className="text-sm font-semibold tracking-[0.2em] text-amber-200 uppercase">
-                Communauté Elo
-              </p>
-              <h2 className="mt-2 max-w-md text-3xl font-bold tracking-tight">
-                Lancez les dés, validez vos matchs, grimpez au classement.
-              </h2>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl ring-1 ring-white/20">
-              <Image
-                src={brandImages.diceAction}
-                alt=""
-                fill
-                className="object-cover"
-                sizes="200px"
-              />
-            </div>
-            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl ring-1 ring-white/20">
-              <Image
-                src={brandImages.boxArt}
-                alt=""
-                fill
-                className="object-cover"
-                sizes="200px"
-              />
-            </div>
+        <div className="relative z-10 flex min-h-72 flex-col gap-4">
+          <Image
+            src={brandImages.logo}
+            alt="Dice Throne"
+            width={72}
+            height={72}
+            className="rounded-2xl bg-white/10 p-2 ring-1 ring-white/20 backdrop-blur"
+          />
+          <div>
+            <p className="text-sm font-semibold tracking-[0.2em] text-amber-200 uppercase">
+              Communauté Elo
+            </p>
+            <h2 className="mt-2 max-w-md text-3xl font-bold tracking-tight">
+              Lancez les dés, validez vos matchs, grimpez au classement.
+            </h2>
           </div>
         </div>
       </section>

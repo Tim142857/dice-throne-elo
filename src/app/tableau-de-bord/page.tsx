@@ -83,6 +83,12 @@ export default async function DashboardPage() {
         {context.profile ? (
           <>
             <Link
+              href={`/joueurs/${context.profile.slug}`}
+              className="btn-secondary min-h-11 px-5 py-3"
+            >
+              Mon profil
+            </Link>
+            <Link
               href="/mes-matchs"
               className="btn-secondary min-h-11 px-5 py-3"
             >

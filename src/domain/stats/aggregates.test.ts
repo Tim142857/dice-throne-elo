@@ -5,6 +5,8 @@ import {
   aggregateHeroStats,
   aggregatePlayerConfrontation,
   pickFavorableMatchups,
+  pickHeroWinRateExtremes,
+  pickOpponentExtremes,
   type MatchFact,
 } from "@/domain/stats/aggregates";
 
@@ -67,6 +69,36 @@ describe("pickFavorableMatchups", () => {
     );
     expect(result.favorable.map((pRow) => pRow.opponentHeroId)).toEqual(["b", "c"]);
     expect(result.unfavorable[0]?.opponentHeroId).toBe("c");
+  });
+});
+
+describe("pickOpponentExtremes", () => {
+  it("picks nemesis and favorite opponent by win rate with minimum matches", () => {
+    const result = pickOpponentExtremes(
+      [
+        { opponentPseudo: "Alice", opponentSlug: "alice", wins: 1, losses: 4 },
+        { opponentPseudo: "Bob", opponentSlug: "bob", wins: 7, losses: 1 },
+        { opponentPseudo: "Carol", opponentSlug: "carol", wins: 1, losses: 0 },
+      ],
+      3,
+    );
+    expect(result.nemesis?.opponentSlug).toBe("alice");
+    expect(result.favoriteOpponent?.opponentSlug).toBe("bob");
+  });
+});
+
+describe("pickHeroWinRateExtremes", () => {
+  it("picks best and worst hero by win rate", () => {
+    const result = pickHeroWinRateExtremes(
+      [
+        { name: "Monk", slug: "monk", matchesCount: 10, winsCount: 6, lossesCount: 4 },
+        { name: "Pyro", slug: "pyro", matchesCount: 5, winsCount: 1, lossesCount: 4 },
+        { name: "Ninja", slug: "ninja", matchesCount: 2, winsCount: 2, lossesCount: 0 },
+      ],
+      3,
+    );
+    expect(result.best?.slug).toBe("monk");
+    expect(result.worst?.slug).toBe("pyro");
   });
 });
 

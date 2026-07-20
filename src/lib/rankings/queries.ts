@@ -4,6 +4,12 @@ import {
   computeBestWinStreak,
   formatWinRate,
 } from "@/domain/rankings/ranks";
+import {
+  pickHeroWinRateExtremes,
+  pickOpponentExtremes,
+  type HeroWinRateSummary,
+  type OpponentHeadToHead,
+} from "@/domain/stats/aggregates";
 import { mapProfileRow, type ProfileDbRow } from "@/lib/mappers/account";
 import { mapHeroRow, type HeroDbRow } from "@/lib/mappers/hero";
 import {
@@ -258,7 +264,20 @@ export type PlayerPublicProfile = {
   distinctOpponents: number;
   mostPlayedHero: { name: string; slug: string; matchesCount: number } | null;
   bestHero: { name: string; slug: string; ratingDisplay: number } | null;
-  heroDistribution: Array<{ name: string; slug: string; matchesCount: number }>;
+  bestHeroByWinRate: HeroWinRateSummary | null;
+  worstHeroByWinRate: HeroWinRateSummary | null;
+  nemesis: OpponentHeadToHead | null;
+  favoriteOpponent: OpponentHeadToHead | null;
+  heroDistribution: Array<{
+    name: string;
+    slug: string;
+    matchesCount: number;
+    winsCount: number;
+    lossesCount: number;
+    winRateLabel: string;
+  }>;
+  recentForm: boolean[];
+  eloDeltaRecent5: number | null;
   recentMatches: Array<{
     id: string;
     playedAt: string;
@@ -273,8 +292,13 @@ export type PlayerPublicProfile = {
     opponentSlug: string;
     wins: number;
     losses: number;
+    matchesCount: number;
+    winRateLabel: string;
   }>;
 };
+
+const MIN_OPPONENT_MATCHES = 3;
+const MIN_HERO_MATCHES = 3;
 
 export async function getPlayerPublicProfileBySlug(
   pSlug: string,
@@ -355,12 +379,16 @@ export async function getPlayerPublicProfileBySlug(
 
   const heroRows = ((heroRatingsResponse.data ?? []) as Array<{
     matches_count: number;
+    wins_count: number;
+    losses_count: number;
     rating: string | number;
     heroes: { name: string; slug: string };
   }>).map((pRow) => ({
     name: pRow.heroes.name,
     slug: pRow.heroes.slug,
     matchesCount: pRow.matches_count,
+    winsCount: pRow.wins_count,
+    lossesCount: pRow.losses_count,
     rating: toNumber(pRow.rating),
   }));
 
@@ -425,14 +453,58 @@ export async function getPlayerPublicProfileBySlug(
     });
   }
 
-  const eloHistory = ((eventsResponse.data ?? []) as Array<{
+  const ratingEvents = (eventsResponse.data ?? []) as Array<{
     processed_at: string;
     rating_after: string | number;
-  }>).map((pEvent) => ({
+    rating_change: string | number;
+  }>;
+
+  const eloHistory = ratingEvents.map((pEvent) => ({
     at: pEvent.processed_at,
     rating: toNumber(pEvent.rating_after),
     ratingDisplay: roundRatingForDisplay(toNumber(pEvent.rating_after)),
   }));
+
+  const eloHistoryWithStart =
+    eloHistory.length > 0
+      ? [
+          {
+            at: profile.createdAt,
+            rating: 1000,
+            ratingDisplay: 1000,
+          },
+          ...eloHistory,
+        ]
+      : eloHistory;
+
+  const recentRatingChanges = ratingEvents.slice(-5).map((pEvent) => toNumber(pEvent.rating_change));
+  const eloDeltaRecent5 =
+    recentRatingChanges.length > 0
+      ? roundRatingForDisplay(recentRatingChanges.reduce((pSum, pChange) => pSum + pChange, 0))
+      : null;
+
+  const recordsVsOpponents = [...vsMap.values()]
+    .map((pRow) => {
+      const matchesCount = pRow.wins + pRow.losses;
+      return {
+        opponentPseudo: pRow.pseudo,
+        opponentSlug: pRow.slug,
+        wins: pRow.wins,
+        losses: pRow.losses,
+        matchesCount,
+        winRateLabel: formatWinRate(pRow.wins, matchesCount),
+      };
+    })
+    .sort((pLeft, pRight) => pRight.matchesCount - pLeft.matchesCount);
+
+  const { nemesis, favoriteOpponent } = pickOpponentExtremes(
+    recordsVsOpponents,
+    MIN_OPPONENT_MATCHES,
+  );
+  const { best: bestHeroByWinRate, worst: worstHeroByWinRate } = pickHeroWinRateExtremes(
+    heroRows,
+    MIN_HERO_MATCHES,
+  );
 
   return {
     profile,
@@ -465,22 +537,24 @@ export async function getPlayerPublicProfileBySlug(
           ratingDisplay: roundRatingForDisplay(bestHero.rating),
         }
       : null,
+    bestHeroByWinRate,
+    worstHeroByWinRate,
+    nemesis,
+    favoriteOpponent,
     heroDistribution: [...heroRows]
       .sort((pLeft, pRight) => pRight.matchesCount - pLeft.matchesCount)
       .map((pRow) => ({
         name: pRow.name,
         slug: pRow.slug,
         matchesCount: pRow.matchesCount,
+        winsCount: pRow.winsCount,
+        lossesCount: pRow.lossesCount,
+        winRateLabel: formatWinRate(pRow.winsCount, pRow.matchesCount),
       })),
     recentMatches: recentMatches.slice(0, 20),
-    eloHistory,
-    recordsVsOpponents: [...vsMap.values()]
-      .map((pRow) => ({
-        opponentPseudo: pRow.pseudo,
-        opponentSlug: pRow.slug,
-        wins: pRow.wins,
-        losses: pRow.losses,
-      }))
-      .sort((pLeft, pRight) => pRight.wins + pRight.losses - (pLeft.wins + pLeft.losses)),
+    recentForm: resultsChronological.slice(-10),
+    eloDeltaRecent5,
+    eloHistory: eloHistoryWithStart,
+    recordsVsOpponents,
   };
 }
