@@ -79,7 +79,7 @@ export function AchievementBoard({ owned, progress, definitions }: AchievementBo
                     <div className="mt-2">
                       <div className="flex justify-between text-xs text-zinc-500">
                         <span>
-                          {prog.current} / {prog.target}
+                          {Math.round(prog.current)} / {prog.target}
                         </span>
                         <span>{Math.round((prog.current / prog.target) * 100)}%</span>
                       </div>

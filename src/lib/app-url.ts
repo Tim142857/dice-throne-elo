@@ -6,6 +6,10 @@ function normalizeBaseUrl(pUrl: string): string {
   return pUrl.replace(/\/$/, "");
 }
 
+function isLocalhostUrl(pUrl: string): boolean {
+  return /localhost|127\.0\.0\.1/.test(pUrl);
+}
+
 export function resolveAppBaseUrlFromHeaders(pHeaderList: Headers): string | null {
   const host = pHeaderList.get("x-forwarded-host") ?? pHeaderList.get("host");
   if (!host) {
@@ -28,32 +32,72 @@ function resolveAppBaseUrlFromPlatform(): string | null {
   return null;
 }
 
-function assertProductionAppUrl(pUrl: string): void {
-  if (process.env.NODE_ENV === "production" && /localhost|127\.0\.0\.1/.test(pUrl)) {
-    throw new Error(
-      "NEXT_PUBLIC_APP_URL pointe vers localhost en production. Configurez l’URL publique du site.",
-    );
+function readConfiguredAppUrl(): string | null {
+  const raw = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (!raw) {
+    return null;
   }
+  return normalizeBaseUrl(raw);
 }
 
 /**
- * Canonical app origin for auth redirects (email confirmation, OAuth).
- * Prefers the incoming request host so production emails never fall back to localhost.
+ * Resolve order for auth email / OAuth redirects:
+ * 1. NEXT_PUBLIC_APP_URL when it is a public (non-localhost) URL
+ * 2. Request host when it is public
+ * 3. VERCEL_URL
+ * 4. Localhost headers / env (development only)
  */
-export async function getAppBaseUrl(): Promise<string> {
-  const fromHeaders = resolveAppBaseUrlFromHeaders(await headers());
+export function resolveAppBaseUrl(pInput: {
+  headerList?: Headers | null;
+  configuredUrl?: string | null;
+  platformUrl?: string | null;
+  nodeEnv?: string;
+}): string {
+  const nodeEnv = pInput.nodeEnv ?? process.env.NODE_ENV ?? "development";
+  const configured = pInput.configuredUrl ? normalizeBaseUrl(pInput.configuredUrl) : null;
+  const fromHeaders = pInput.headerList
+    ? resolveAppBaseUrlFromHeaders(pInput.headerList)
+    : null;
+  const fromPlatform = pInput.platformUrl ? normalizeBaseUrl(pInput.platformUrl) : null;
+
+  if (configured && !isLocalhostUrl(configured)) {
+    return configured;
+  }
+
+  if (fromHeaders && !isLocalhostUrl(fromHeaders)) {
+    return fromHeaders;
+  }
+
+  if (fromPlatform && !isLocalhostUrl(fromPlatform)) {
+    return fromPlatform;
+  }
+
+  if (nodeEnv === "production") {
+    throw new Error(
+      "Impossible de déterminer une URL publique pour l’auth. Définissez NEXT_PUBLIC_APP_URL (ex. https://dice-throne-elo.vercel.app) et ajoutez /auth/callback dans Supabase → Redirect URLs.",
+    );
+  }
+
   if (fromHeaders) {
     return fromHeaders;
   }
 
-  const fromPlatform = resolveAppBaseUrlFromPlatform();
-  if (fromPlatform) {
-    return fromPlatform;
+  if (configured) {
+    return configured;
   }
 
-  const envUrl = normalizeBaseUrl(getPublicEnv().NEXT_PUBLIC_APP_URL);
-  assertProductionAppUrl(envUrl);
-  return envUrl;
+  throw new Error("Impossible de déterminer l’URL de l’application.");
+}
+
+/**
+ * Canonical app origin for auth redirects (email confirmation, OAuth).
+ */
+export async function getAppBaseUrl(): Promise<string> {
+  return resolveAppBaseUrl({
+    headerList: await headers(),
+    configuredUrl: readConfiguredAppUrl() ?? normalizeBaseUrl(getPublicEnv().NEXT_PUBLIC_APP_URL),
+    platformUrl: resolveAppBaseUrlFromPlatform(),
+  });
 }
 
 export function buildAuthCallbackUrl(pBaseUrl: string, pNextPath?: string): string {

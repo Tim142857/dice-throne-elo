@@ -1,4 +1,5 @@
 import { ACHIEVEMENT_DEFINITIONS, type AchievementDefinition } from "@/domain/achievements/definitions";
+import { roundRatingForDisplay } from "@/domain/elo/calculate";
 
 export type AchievementMatchFact = {
   matchId: string;
@@ -307,10 +308,10 @@ function buildProgress(
       current = pStats.bestSameHeroMatches;
       break;
     case "elo":
-      current = pStats.maxEloAfter;
+      current = roundRatingForDisplay(pStats.maxEloAfter);
       break;
     case "underdog":
-      current = pStats.bestUnderdogDeficit;
+      current = roundRatingForDisplay(pStats.bestUnderdogDeficit);
       break;
     default:
       current = 0;

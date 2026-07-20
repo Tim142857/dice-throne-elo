@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { buildAuthCallbackUrl, resolveAppBaseUrlFromHeaders } from "@/lib/app-url";
+import {
+  buildAuthCallbackUrl,
+  resolveAppBaseUrl,
+  resolveAppBaseUrlFromHeaders,
+} from "@/lib/app-url";
 
 describe("resolveAppBaseUrlFromHeaders", () => {
   it("uses the forwarded host in production", () => {
@@ -22,6 +26,58 @@ describe("resolveAppBaseUrlFromHeaders", () => {
 
   it("returns null when no host is available", () => {
     expect(resolveAppBaseUrlFromHeaders(new Headers())).toBeNull();
+  });
+});
+
+describe("resolveAppBaseUrl", () => {
+  it("prefers the configured public URL over localhost headers", () => {
+    const headerList = new Headers({ host: "localhost:3000" });
+    expect(
+      resolveAppBaseUrl({
+        headerList,
+        configuredUrl: "https://dice-throne-elo.vercel.app/",
+        platformUrl: null,
+        nodeEnv: "production",
+      }),
+    ).toBe("https://dice-throne-elo.vercel.app");
+  });
+
+  it("uses request host when configured URL is localhost", () => {
+    const headerList = new Headers({
+      "x-forwarded-host": "dice-throne-elo.vercel.app",
+      "x-forwarded-proto": "https",
+    });
+    expect(
+      resolveAppBaseUrl({
+        headerList,
+        configuredUrl: "http://localhost:3000",
+        platformUrl: null,
+        nodeEnv: "production",
+      }),
+    ).toBe("https://dice-throne-elo.vercel.app");
+  });
+
+  it("allows localhost only outside production", () => {
+    const headerList = new Headers({ host: "localhost:3000" });
+    expect(
+      resolveAppBaseUrl({
+        headerList,
+        configuredUrl: "http://localhost:3000",
+        platformUrl: null,
+        nodeEnv: "development",
+      }),
+    ).toBe("http://localhost:3000");
+  });
+
+  it("throws in production when only localhost is available", () => {
+    expect(() =>
+      resolveAppBaseUrl({
+        headerList: new Headers({ host: "localhost:3000" }),
+        configuredUrl: "http://localhost:3000",
+        platformUrl: null,
+        nodeEnv: "production",
+      }),
+    ).toThrow(/NEXT_PUBLIC_APP_URL/);
   });
 });
 

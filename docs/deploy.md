@@ -113,9 +113,13 @@ La clé `service_role` contourne le RLS : **ne jamais l’exposer au navigateur 
 
 | Champ | Valeur |
 | --- | --- |
-| **Site URL** | `https://<votre-domaine-prod>` |
-| **Redirect URLs** | `https://<votre-domaine-prod>/auth/callback` |
+| **Site URL** | `https://dice-throne-elo.vercel.app` (ou votre domaine custom) |
+| **Redirect URLs** | `https://dice-throne-elo.vercel.app/auth/callback` |
 | | `http://localhost:3000/auth/callback` (développement local) |
+
+> **Piège fréquent :** si le **Site URL** reste à `http://localhost:3000`, ou si l’URL de callback prod n’est **pas** listée dans Redirect URLs, Supabase ignore `emailRedirectTo` et force `redirect_to=http://localhost:3000` dans le mail de confirmation — même si `NEXT_PUBLIC_APP_URL` est correct sur Vercel.
+
+Après correction, renvoyer un nouvel e-mail de confirmation (l’ancien lien reste invalide).
 
 Pour les previews Vercel, ajouter l’URL de preview si nécessaire, par exemple :
 
