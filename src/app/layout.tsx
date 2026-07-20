@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
 
+import { NavigationProgress } from "@/components/layout/navigation-progress";
 import { SiteHeader } from "@/components/layout/site-header";
 
 import "./globals.css";
@@ -42,6 +44,9 @@ export default function RootLayout({
         <a href="#contenu" className="skip-link">
           Aller au contenu
         </a>
+        <Suspense fallback={null}>
+          <NavigationProgress />
+        </Suspense>
         <SiteHeader />
         <div id="contenu" className="flex flex-1 flex-col">
           {children}

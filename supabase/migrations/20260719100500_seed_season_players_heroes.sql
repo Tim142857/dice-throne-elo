@@ -153,5 +153,15 @@ from (
     ('Iceberg'),
     ('Psylocke'),
     ('Tornade'),
-    ('Wolverine')
+    ('Wolverine'),
+    ('Deadpool'),
+    ('Druide'),
+    ('Elfe solaire'),
+    ('Forgeron'),
+    ('Duelliste'),
+    ('Alchimiste'),
+    ('Cavalier sans tête'),
+    ('Nécromancien'),
+    ('Dame pale'),
+    ('Corbelle')
 ) as hero(name);

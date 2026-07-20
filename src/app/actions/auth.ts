@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 import { provisionAccountForUser } from "@/lib/auth/provision-account";
 import { actionError, actionSuccess, firstZodError, type ActionResult } from "@/lib/actions/result";
-import { getPublicEnv } from "@/lib/env";
+import { buildAuthCallbackUrl, getAppBaseUrl } from "@/lib/app-url";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   completeRegistrationSchema,
@@ -86,14 +86,14 @@ export async function signUpAction(pFormData: FormData): Promise<ActionResult> {
     return pseudoCheck;
   }
 
-  const env = getPublicEnv();
+  const appBaseUrl = await getAppBaseUrl();
   const supabase = await createSupabaseServerClient();
 
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
-      emailRedirectTo: `${env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+      emailRedirectTo: buildAuthCallbackUrl(appBaseUrl),
       data: {
         requested_pseudo: parsed.data.pseudo,
         presentation_message: parsed.data.presentationMessage,
@@ -218,9 +218,9 @@ export async function completeRegistrationAction(pFormData: FormData): Promise<A
 }
 
 export async function getGoogleOAuthUrlAction(pNextPath = "/tableau-de-bord"): Promise<ActionResult<{ url: string }>> {
-  const env = getPublicEnv();
+  const appBaseUrl = await getAppBaseUrl();
   const supabase = await createSupabaseServerClient();
-  const redirectTo = `${env.NEXT_PUBLIC_APP_URL}/auth/callback?next=${encodeURIComponent(pNextPath)}`;
+  const redirectTo = buildAuthCallbackUrl(appBaseUrl, pNextPath);
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",

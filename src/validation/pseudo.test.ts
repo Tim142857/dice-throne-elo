@@ -30,8 +30,8 @@ describe("pseudoSchema", () => {
 });
 
 describe("seed metadata", () => {
-  it("lists the 34 heroes from the specifications", () => {
-    expect(SEED_HERO_NAMES).toHaveLength(34);
+  it("lists the 44 heroes from the specifications", () => {
+    expect(SEED_HERO_NAMES).toHaveLength(44);
   });
 
   it("exposes stable historical profile ids", () => {

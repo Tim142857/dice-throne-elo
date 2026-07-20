@@ -70,9 +70,10 @@ Exécuter chaque fichier de `supabase/migrations/` **dans l’ordre chronologiqu
 | `20260719100200_match_tables.sql` | `matches`, `match_proposals`, `match_actions` |
 | `20260719100300_ratings_notifications_audit.sql` | Elo, notifications, audit |
 | `20260719100400_rls_policies.sql` | Row Level Security |
-| `20260719100500_seed_season_players_heroes.sql` | Saison globale, 7 joueurs, 34 héros |
+| `20260719100500_seed_season_players_heroes.sql` | Saison globale, 7 joueurs, 44 héros |
 | `20260719100600_account_request_pending_pseudo_unique.sql` | Unicité pseudos en attente |
 | `20260719100700_replace_season_ratings.sql` | RPC recalcul Elo atomique |
+| `20260719100800_add_playable_heroes.sql` | 10 héros jouables supplémentaires |
 
 #### Données initiales (seeds)
 
@@ -228,7 +229,7 @@ Aucune route publique ne permet de s’auto-attribuer le rôle admin.
 | --- | --- |
 | `/` | Accueil, lien classements |
 | `/classements` | Joueurs seedés à 1000 Elo |
-| `/heros` | 34 héros |
+| `/heros` | 44 héros |
 | `/matchs` | Vide ou matchs validés |
 | `/connexion`, `/inscription` | Formulaires fonctionnels |
 | `/admin` | Accessible uniquement par l’admin |

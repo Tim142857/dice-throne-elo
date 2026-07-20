@@ -1,18 +1,19 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { getAuthUser } from "@/lib/auth/session";
 import { brandImages } from "@/lib/branding";
 import { listGeneralRankings } from "@/lib/rankings/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  let topPlayers: Awaited<ReturnType<typeof listGeneralRankings>> = [];
-  try {
-    topPlayers = (await listGeneralRankings({ sort: "rating" })).slice(0, 5);
-  } catch {
-    topPlayers = [];
-  }
+  const [user, rankingsResult] = await Promise.all([
+    getAuthUser(),
+    listGeneralRankings({ sort: "rating" }).catch(() => [] as Awaited<ReturnType<typeof listGeneralRankings>>),
+  ]);
+  const topPlayers = rankingsResult.slice(0, 5);
+  const isLoggedIn = Boolean(user);
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 px-6 py-10 lg:py-14">
@@ -52,9 +53,11 @@ export default async function HomePage() {
             <Link href="/classements" className="btn-primary min-h-11 px-6">
               Voir les classements
             </Link>
-            <Link href="/inscription" className="btn-secondary min-h-11 px-6 text-violet-900">
-              Créer un compte
-            </Link>
+            {!isLoggedIn ? (
+              <Link href="/inscription" className="btn-secondary min-h-11 px-6 text-violet-900">
+                Créer un compte
+              </Link>
+            ) : null}
           </div>
         </div>
       </section>
