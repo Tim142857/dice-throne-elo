@@ -116,13 +116,13 @@ Détails : `docs/import.md`.
 - Workflow des matchs : `docs/match-workflow.md`
 - Import historique : `docs/import.md`
 - Tests (unitaires, RLS, E2E) : `docs/testing.md`
-- Déploiement Vercel : `docs/deploy.md`
+- Déploiement production (guide complet) : `docs/deploy.md`
 
 ## Déploiement
 
-Voir `docs/deploy.md` (Supabase → variables → Vercel → checklist).
+Guide pas à pas : **[docs/deploy.md](docs/deploy.md)** (Supabase, Auth, Vercel, admin, import, dépannage).
 
-### Checklist mise en prod
+### Checklist rapide
 
 1. Créer le projet Supabase et `npx supabase db push`
 2. Remplir les variables (local + Vercel), dont `ADMIN_EMAIL`
@@ -134,5 +134,3 @@ Voir `docs/deploy.md` (Supabase → variables → Vercel → checklist).
 ## État du projet
 
 V1 fonctionnelle côté dépôt (CDC **1 → 14**) : auth, matchs, Elo, classements, stats, import, litiges, notifications, tests, docs déploiement.
-
-Prochaine action : configurer Supabase / `.env.local`, puis premier commit Git et déploiement Vercel.
