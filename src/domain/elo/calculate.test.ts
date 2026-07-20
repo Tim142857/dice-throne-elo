@@ -8,6 +8,8 @@ import {
   computeExpectedScore,
   nextBestWinStreak,
   nextWinStreak,
+  formatEloDeltaDisplay,
+  formatEloDisplay,
   roundRatingForDisplay,
   updateBestAndWorstRatings,
 } from "@/domain/elo/calculate";
@@ -113,6 +115,21 @@ describe("roundRatingForDisplay", () => {
     expect(roundRatingForDisplay(1000.4)).toBe(1000);
     expect(roundRatingForDisplay(1000.5)).toBe(1001);
     expect(roundRatingForDisplay(999.5)).toBe(1000);
+  });
+});
+
+describe("formatEloDisplay", () => {
+  it("never shows decimals", () => {
+    expect(formatEloDisplay(1095.86)).toBe("1096");
+    expect(formatEloDisplay(72.11)).toBe("72");
+  });
+});
+
+describe("formatEloDeltaDisplay", () => {
+  it("rounds and prefixes positive deltas", () => {
+    expect(formatEloDeltaDisplay(20.98)).toBe("+21");
+    expect(formatEloDeltaDisplay(-11.4)).toBe("-11");
+    expect(formatEloDeltaDisplay(0.4)).toBe("0");
   });
 });
 

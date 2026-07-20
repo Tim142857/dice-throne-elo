@@ -87,6 +87,21 @@ export function roundRatingForDisplay(pRating: number): number {
 }
 
 /**
+ * Format an Elo rating for UI — always an integer, never decimals.
+ */
+export function formatEloDisplay(pRating: number): string {
+  return String(roundRatingForDisplay(pRating));
+}
+
+/**
+ * Format an Elo delta for UI — always an integer, with an explicit sign when positive.
+ */
+export function formatEloDeltaDisplay(pDelta: number): string {
+  const rounded = roundRatingForDisplay(pDelta);
+  return rounded > 0 ? `+${rounded}` : String(rounded);
+}
+
+/**
  * Current win streak: increments on win, resets to 0 on loss.
  */
 export function nextWinStreak(pCurrentWinStreak: number, pWon: boolean): number {

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PageHero } from "@/components/layout/page-hero";
+import { formatEloDisplay } from "@/domain/elo/calculate";
 import { brandImages } from "@/lib/branding";
 import { formatDate } from "@/lib/dates";
 import { listPublicRecords } from "@/lib/records/service";
@@ -13,9 +14,16 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
+const ELO_RECORD_CODES = new Set([
+  "highest_elo",
+  "best_ten_match_progression",
+  "largest_single_elo_gain",
+  "biggest_upset",
+]);
+
 function formatRecordValue(pCode: string, pValue: number): string {
-  if (pCode === "highest_elo" || pCode === "best_ten_match_progression" || pCode === "largest_single_elo_gain" || pCode === "biggest_upset") {
-    return pValue.toLocaleString("fr-FR", { maximumFractionDigits: 2 });
+  if (ELO_RECORD_CODES.has(pCode)) {
+    return formatEloDisplay(pValue);
   }
   if (pCode === "closest_win" || pCode === "largest_win") {
     return `${pValue} PV`;
@@ -47,57 +55,61 @@ export default async function RecordsPage() {
           Records indisponibles ({loadError}).
         </p>
       ) : (
-        <ul className="grid gap-4 md:grid-cols-2">
+        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {records.map((pRecord) => (
-            <li key={pRecord.code} className="brand-card rounded-2xl p-5">
-              <h2 className="text-lg font-bold text-violet-950">{pRecord.title}</h2>
-              <p className="mt-1 text-sm text-brand-muted">{pRecord.subtitle}</p>
+            <li key={pRecord.code} className="brand-card rounded-xl px-3.5 py-3">
+              <h2 className="text-sm font-bold text-violet-950">{pRecord.title}</h2>
+              <p className="mt-0.5 text-xs leading-snug text-brand-muted">{pRecord.subtitle}</p>
               {pRecord.holders.length === 0 ? (
-                <p className="mt-4 text-sm text-zinc-500">Pas encore de détenteur.</p>
+                <p className="mt-2 text-xs text-zinc-500">Pas encore de détenteur.</p>
               ) : (
-                <ul className="mt-4 flex flex-col gap-3">
+                <ul className="mt-2 flex flex-col gap-1.5">
                   {pRecord.holders.map((pHolder, pIndex) => (
                     <li
                       key={`${pRecord.code}-${pIndex}-${pHolder.relatedMatchId ?? "none"}`}
-                      className="rounded-xl border border-violet-100 bg-violet-50/50 px-3 py-2 text-sm"
+                      className="rounded-lg border border-violet-100 bg-violet-50/50 px-2.5 py-1.5"
                     >
-                      <p className="font-semibold text-violet-950">
-                        {formatRecordValue(pRecord.code, pHolder.value)}
-                        {pRecord.holders.length > 1 ? (
-                          <span className="ml-2 text-xs font-medium text-violet-600">ex æquo</span>
-                        ) : null}
-                      </p>
-                      <p className="mt-1 text-zinc-700">
-                        {pHolder.relatedProfiles.length > 1 ? (
-                          <>
-                            {pHolder.relatedProfiles.map((pProfile, pProfileIndex) => (
-                              <span key={pProfile.slug || pProfileIndex}>
-                                {pProfileIndex > 0 ? " · " : null}
-                                {pProfile.slug ? (
-                                  <Link
-                                    href={`/joueurs/${pProfile.slug}`}
-                                    className="font-medium text-violet-800 hover:underline"
-                                  >
-                                    {pProfile.pseudo}
-                                  </Link>
-                                ) : (
-                                  pProfile.pseudo
-                                )}
-                              </span>
-                            ))}
-                          </>
-                        ) : pHolder.profile ? (
-                          <Link
-                            href={`/joueurs/${pHolder.profile.slug}`}
-                            className="font-medium text-violet-800 hover:underline"
-                          >
-                            {pHolder.profile.pseudo}
-                          </Link>
-                        ) : (
-                          "—"
-                        )}
-                      </p>
-                      <p className="mt-1 text-xs text-zinc-500">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="text-base font-bold tabular-nums text-violet-950">
+                          {formatRecordValue(pRecord.code, pHolder.value)}
+                          {pRecord.holders.length > 1 ? (
+                            <span className="ml-1.5 text-[10px] font-medium text-violet-600">
+                              ex æquo
+                            </span>
+                          ) : null}
+                        </p>
+                        <p className="truncate text-xs text-zinc-700">
+                          {pHolder.relatedProfiles.length > 1 ? (
+                            <>
+                              {pHolder.relatedProfiles.map((pProfile, pProfileIndex) => (
+                                <span key={pProfile.slug || pProfileIndex}>
+                                  {pProfileIndex > 0 ? " · " : null}
+                                  {pProfile.slug ? (
+                                    <Link
+                                      href={`/joueurs/${pProfile.slug}`}
+                                      className="font-medium text-violet-800 hover:underline"
+                                    >
+                                      {pProfile.pseudo}
+                                    </Link>
+                                  ) : (
+                                    pProfile.pseudo
+                                  )}
+                                </span>
+                              ))}
+                            </>
+                          ) : pHolder.profile ? (
+                            <Link
+                              href={`/joueurs/${pHolder.profile.slug}`}
+                              className="font-medium text-violet-800 hover:underline"
+                            >
+                              {pHolder.profile.pseudo}
+                            </Link>
+                          ) : (
+                            "—"
+                          )}
+                        </p>
+                      </div>
+                      <p className="mt-0.5 text-[11px] text-zinc-500">
                         {pHolder.establishedAt ? formatDate(pHolder.establishedAt) : "—"}
                         {pHolder.relatedMatchId ? (
                           <>

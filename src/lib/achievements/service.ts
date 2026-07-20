@@ -45,11 +45,16 @@ export async function loadAchievementFactsForProfiles(
 
   const admin = createSupabaseAdminClient();
   const profileSet = new Set(pProfileIds);
+  const profileFilter = pProfileIds
+    .map((pId) => `player1_id.eq.${pId},player2_id.eq.${pId}`)
+    .join(",");
+
   const { data, error } = await admin
     .from("matches")
     .select("*")
     .eq("status", "validated")
     .eq("season_id", SEED_IDS.globalSeasonId)
+    .or(profileFilter)
     .order("validated_at", { ascending: true });
 
   if (error) {

@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { roundRatingForDisplay } from "@/domain/elo/calculate";
 import { buildEloHistoryPoints } from "@/domain/rankings/elo-history";
 import {
@@ -13,7 +15,6 @@ import {
   type OpponentHeadToHead,
 } from "@/domain/stats/aggregates";
 import { mapProfileRow, type ProfileDbRow } from "@/lib/mappers/account";
-import { mapHeroRow, type HeroDbRow } from "@/lib/mappers/hero";
 import {
   mapMatchProposalRow,
   mapMatchRow,
@@ -311,277 +312,405 @@ export type PlayerPublicProfile = {
 const MIN_OPPONENT_MATCHES = 3;
 const MIN_HERO_MATCHES = 3;
 
-export async function getPlayerPublicProfileBySlug(
+export async function getPlayerMetaBySlug(
   pSlug: string,
-): Promise<PlayerPublicProfile | null> {
+): Promise<{ pseudo: string; slug: string } | null> {
   const supabase = await createSupabaseServerClient();
-  const profileResponse = await supabase
+  const { data, error } = await supabase
     .from("profiles")
-    .select("*")
+    .select("pseudo, slug")
     .eq("slug", pSlug)
     .in("status", ["active", "preloaded", "suspended"])
     .maybeSingle();
 
-  if (profileResponse.error) {
-    throw new Error(profileResponse.error.message);
+  if (error) {
+    throw new Error(error.message);
   }
-  if (!profileResponse.data) {
+  if (!data) {
+    return null;
+  }
+  return { pseudo: data.pseudo as string, slug: data.slug as string };
+}
+
+/**
+ * Competition rank by exact general Elo (1224): 1 + count of players strictly above.
+ */
+async function getGeneralRatingRank(
+  pProfileId: string,
+  pRating: number,
+  pMatchesCount: number,
+): Promise<number | null> {
+  if (pMatchesCount <= 0) {
     return null;
   }
 
-  const profile = mapProfileRow(profileResponse.data as ProfileDbRow);
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("player_ratings")
+    .select("profile_id, rating, profiles!inner(status)")
+    .eq("season_id", SEED_IDS.globalSeasonId)
+    .gt("matches_count", 0);
 
-  const [ratingResponse, heroRatingsResponse, rankings, matchesResponse, eventsResponse] =
-    await Promise.all([
-      supabase
-        .from("player_ratings")
-        .select("*")
-        .eq("profile_id", profile.id)
-        .eq("season_id", SEED_IDS.globalSeasonId)
-        .maybeSingle(),
-      supabase
-        .from("player_hero_ratings")
-        .select("*, heroes!inner(id, name, slug)")
-        .eq("profile_id", profile.id)
-        .eq("season_id", SEED_IDS.globalSeasonId)
-        .gt("matches_count", 0),
-      listGeneralRankings({ sort: "rating" }),
-      supabase
-        .from("matches")
-        .select("*")
-        .eq("status", "validated")
-        .or(`player1_id.eq.${profile.id},player2_id.eq.${profile.id}`)
-        .order("validated_at", { ascending: false }),
-      supabase
-        .from("rating_events")
-        .select("*")
-        .eq("profile_id", profile.id)
-        .eq("season_id", SEED_IDS.globalSeasonId)
-        .eq("rating_type", "general")
-        .order("processed_at", { ascending: true }),
-    ]);
-
-  if (ratingResponse.error) {
-    throw new Error(ratingResponse.error.message);
-  }
-  if (heroRatingsResponse.error) {
-    throw new Error(heroRatingsResponse.error.message);
-  }
-  if (matchesResponse.error) {
-    throw new Error(matchesResponse.error.message);
-  }
-  if (eventsResponse.error) {
-    throw new Error(eventsResponse.error.message);
+  if (error) {
+    throw new Error(error.message);
   }
 
-  const rating = ratingResponse.data as
-    | {
-        rating: string | number;
-        best_rating: string | number;
-        worst_rating: string | number | null;
-        matches_count: number;
-        wins_count: number;
-        losses_count: number;
-        current_streak: number;
-      }
-    | null;
-
-  const rank = rankings.find((pRow) => pRow.profileId === profile.id)?.rank ?? null;
-
-  const heroRows = ((heroRatingsResponse.data ?? []) as Array<{
-    matches_count: number;
-    wins_count: number;
-    losses_count: number;
+  const eligible = ((data ?? []) as unknown as Array<{
+    profile_id: string;
     rating: string | number;
-    heroes: { name: string; slug: string };
-  }>).map((pRow) => ({
-    name: pRow.heroes.name,
-    slug: pRow.heroes.slug,
-    matchesCount: pRow.matches_count,
-    winsCount: pRow.wins_count,
-    lossesCount: pRow.losses_count,
-    rating: toNumber(pRow.rating),
-  }));
+    profiles: { status: string };
+  }>).filter((pRow) => ["active", "preloaded", "suspended"].includes(pRow.profiles.status));
 
-  const mostPlayedHero =
-    [...heroRows].sort((pLeft, pRight) => pRight.matchesCount - pLeft.matchesCount)[0] ?? null;
-  const bestHero =
-    [...heroRows].sort((pLeft, pRight) => pRight.rating - pLeft.rating)[0] ?? null;
-
-  const recentMatches: PlayerPublicProfile["recentMatches"] = [];
-  const resultsChronological: boolean[] = [];
-  const vsMap = new Map<string, { pseudo: string; slug: string; wins: number; losses: number }>();
-  const healthFacts: Array<{
-    matchId: string;
-    validatedAt: string;
-    winnerProfileId: string;
-    winnerRemainingHealth: number;
-    pvReliable: boolean;
-  }> = [];
-
-  for (const row of [...(matchesResponse.data ?? [])].reverse()) {
-    const match = mapMatchRow(row as MatchDbRow);
-    if (!match.currentProposalId || !match.validatedAt) {
-      continue;
-    }
-    const proposalResponse = await supabase
-      .from("match_proposals")
-      .select("*")
-      .eq("id", match.currentProposalId)
-      .single();
-    if (proposalResponse.error || !proposalResponse.data) {
-      continue;
-    }
-    const proposal = mapMatchProposalRow(proposalResponse.data as MatchProposalDbRow);
-    const opponentId = match.player1Id === profile.id ? match.player2Id : match.player1Id;
-    const heroId = match.player1Id === profile.id ? proposal.hero1Id : proposal.hero2Id;
-    const won = proposal.winnerProfileId === profile.id;
-
-    const [opponentResponse, heroResponse] = await Promise.all([
-      supabase.from("profiles").select("*").eq("id", opponentId).single(),
-      supabase.from("heroes").select("*").eq("id", heroId).single(),
-    ]);
-    if (opponentResponse.error || heroResponse.error) {
-      continue;
-    }
-    const opponent = mapProfileRow(opponentResponse.data as ProfileDbRow);
-    const hero = mapHeroRow(heroResponse.data as HeroDbRow);
-
-    resultsChronological.push(won);
-    const vs = vsMap.get(opponent.id) ?? {
-      pseudo: opponent.pseudo,
-      slug: opponent.slug,
-      wins: 0,
-      losses: 0,
-    };
-    if (won) {
-      vs.wins += 1;
-    } else {
-      vs.losses += 1;
-    }
-    vsMap.set(opponent.id, vs);
-
-    healthFacts.push({
-      matchId: match.id,
-      validatedAt: match.validatedAt,
-      winnerProfileId: proposal.winnerProfileId,
-      winnerRemainingHealth: proposal.winnerRemainingHealth,
-      pvReliable: true,
-    });
-
-    recentMatches.unshift({
-      id: match.id,
-      playedAt: proposal.playedAt,
-      opponentPseudo: opponent.pseudo,
-      opponentSlug: opponent.slug,
-      won,
-      heroName: hero.name,
-      winnerRemainingHealth: proposal.winnerRemainingHealth,
-    });
+  if (!eligible.some((pRow) => pRow.profile_id === pProfileId)) {
+    return null;
   }
 
-  const healthStats = computePlayerHealthStats(profile.id, healthFacts);
-
-  const ratingEvents = (eventsResponse.data ?? []) as Array<{
-    processed_at: string;
-    rating_after: string | number;
-    rating_change: string | number;
-  }>;
-
-  const eloHistory = buildEloHistoryPoints(
-    ratingEvents.map((pEvent) => ({
-      processedAt: pEvent.processed_at,
-      ratingAfter: toNumber(pEvent.rating_after),
-      ratingDisplay: roundRatingForDisplay(toNumber(pEvent.rating_after)),
-    })),
-  );
-
-  const recentRatingChanges = ratingEvents.slice(-5).map((pEvent) => toNumber(pEvent.rating_change));
-  const eloDeltaRecent5 =
-    recentRatingChanges.length > 0
-      ? roundRatingForDisplay(recentRatingChanges.reduce((pSum, pChange) => pSum + pChange, 0))
-      : null;
-
-  const recordsVsOpponents = [...vsMap.values()]
-    .map((pRow) => {
-      const matchesCount = pRow.wins + pRow.losses;
-      return {
-        opponentPseudo: pRow.pseudo,
-        opponentSlug: pRow.slug,
-        wins: pRow.wins,
-        losses: pRow.losses,
-        matchesCount,
-        winRateLabel: formatWinRate(pRow.wins, matchesCount),
-      };
-    })
-    .sort((pLeft, pRight) => pRight.matchesCount - pLeft.matchesCount);
-
-  const { nemesis, favoriteOpponent } = pickOpponentExtremes(
-    recordsVsOpponents,
-    MIN_OPPONENT_MATCHES,
-  );
-  const { best: bestHeroByWinRate, worst: worstHeroByWinRate } = pickHeroWinRateExtremes(
-    heroRows,
-    MIN_HERO_MATCHES,
-  );
-
-  return {
-    profile,
-    ratingExact: rating ? toNumber(rating.rating) : 1000,
-    ratingDisplay: rating ? roundRatingForDisplay(toNumber(rating.rating)) : 1000,
-    bestRatingDisplay: rating ? roundRatingForDisplay(toNumber(rating.best_rating)) : 1000,
-    worstRatingDisplay:
-      rating && rating.worst_rating !== null
-        ? roundRatingForDisplay(toNumber(rating.worst_rating))
-        : null,
-    rank,
-    matchesCount: rating?.matches_count ?? 0,
-    winsCount: rating?.wins_count ?? 0,
-    lossesCount: rating?.losses_count ?? 0,
-    winRateLabel: formatWinRate(rating?.wins_count ?? 0, rating?.matches_count ?? 0),
-    currentStreak: rating?.current_streak ?? 0,
-    bestWinStreak: computeBestWinStreak(resultsChronological),
-    distinctOpponents: vsMap.size,
-    mostPlayedHero: mostPlayedHero
-      ? {
-          name: mostPlayedHero.name,
-          slug: mostPlayedHero.slug,
-          matchesCount: mostPlayedHero.matchesCount,
-        }
-      : null,
-    bestHero: bestHero
-      ? {
-          name: bestHero.name,
-          slug: bestHero.slug,
-          ratingDisplay: roundRatingForDisplay(bestHero.rating),
-        }
-      : null,
-    bestHeroByWinRate,
-    worstHeroByWinRate,
-    nemesis,
-    favoriteOpponent,
-    heroDistribution: [...heroRows]
-      .sort((pLeft, pRight) => pRight.matchesCount - pLeft.matchesCount)
-      .map((pRow) => ({
-        name: pRow.name,
-        slug: pRow.slug,
-        matchesCount: pRow.matchesCount,
-        winsCount: pRow.winsCount,
-        lossesCount: pRow.lossesCount,
-        winRateLabel: formatWinRate(pRow.winsCount, pRow.matchesCount),
-      })),
-    recentMatches: recentMatches.slice(0, 20),
-    recentForm: resultsChronological.slice(-10),
-    eloDeltaRecent5,
-    healthStats: {
-      averageWinnerHp: healthStats.averageWinnerHp,
-      medianWinnerHp: healthStats.medianWinnerHp,
-      closestWinHp: healthStats.closestWinHp,
-      largestWinHp: healthStats.largestWinHp,
-      winsWithAtMost5Hp: healthStats.winsWithAtMost5Hp,
-      winsWithAtLeast20Hp: healthStats.winsWithAtLeast20Hp,
-    },
-    eloHistory,
-    recordsVsOpponents,
-  };
+  const higherCount = eligible.filter((pRow) => toNumber(pRow.rating) > pRating).length;
+  return higherCount + 1;
 }
+
+export const getPlayerPublicProfileBySlug = cache(
+  async (pSlug: string): Promise<PlayerPublicProfile | null> => {
+    const supabase = await createSupabaseServerClient();
+    const profileResponse = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("slug", pSlug)
+      .in("status", ["active", "preloaded", "suspended"])
+      .maybeSingle();
+
+    if (profileResponse.error) {
+      throw new Error(profileResponse.error.message);
+    }
+    if (!profileResponse.data) {
+      return null;
+    }
+
+    const profile = mapProfileRow(profileResponse.data as ProfileDbRow);
+
+    const [ratingResponse, heroRatingsResponse, matchesResponse, eventsResponse] =
+      await Promise.all([
+        supabase
+          .from("player_ratings")
+          .select("rating, best_rating, worst_rating, matches_count, wins_count, losses_count, current_streak")
+          .eq("profile_id", profile.id)
+          .eq("season_id", SEED_IDS.globalSeasonId)
+          .maybeSingle(),
+        supabase
+          .from("player_hero_ratings")
+          .select("matches_count, wins_count, losses_count, rating, heroes!inner(name, slug)")
+          .eq("profile_id", profile.id)
+          .eq("season_id", SEED_IDS.globalSeasonId)
+          .gt("matches_count", 0),
+        supabase
+          .from("matches")
+          .select(
+            "id, player1_id, player2_id, current_proposal_id, validated_at, status, season_id, created_by_profile_id, played_at, validated_by_profile_id, cancelled_at, import_source_key, achievements_eligible, created_at, updated_at",
+          )
+          .eq("status", "validated")
+          .or(`player1_id.eq.${profile.id},player2_id.eq.${profile.id}`)
+          .order("validated_at", { ascending: true }),
+        supabase
+          .from("rating_events")
+          .select("processed_at, rating_after, rating_change")
+          .eq("profile_id", profile.id)
+          .eq("season_id", SEED_IDS.globalSeasonId)
+          .eq("rating_type", "general")
+          .order("processed_at", { ascending: true }),
+      ]);
+
+    if (ratingResponse.error) {
+      throw new Error(ratingResponse.error.message);
+    }
+    if (heroRatingsResponse.error) {
+      throw new Error(heroRatingsResponse.error.message);
+    }
+    if (matchesResponse.error) {
+      throw new Error(matchesResponse.error.message);
+    }
+    if (eventsResponse.error) {
+      throw new Error(eventsResponse.error.message);
+    }
+
+    const rating = ratingResponse.data as
+      | {
+          rating: string | number;
+          best_rating: string | number;
+          worst_rating: string | number | null;
+          matches_count: number;
+          wins_count: number;
+          losses_count: number;
+          current_streak: number;
+        }
+      | null;
+
+    const ratingExact = rating ? toNumber(rating.rating) : 1000;
+    const rankPromise = getGeneralRatingRank(
+      profile.id,
+      ratingExact,
+      rating?.matches_count ?? 0,
+    );
+
+    const heroRows = ((heroRatingsResponse.data ?? []) as unknown as Array<{
+      matches_count: number;
+      wins_count: number;
+      losses_count: number;
+      rating: string | number;
+      heroes: { name: string; slug: string };
+    }>).map((pRow) => ({
+      name: pRow.heroes.name,
+      slug: pRow.heroes.slug,
+      matchesCount: pRow.matches_count,
+      winsCount: pRow.wins_count,
+      lossesCount: pRow.losses_count,
+      rating: toNumber(pRow.rating),
+    }));
+
+    const mostPlayedHero =
+      [...heroRows].sort((pLeft, pRight) => pRight.matchesCount - pLeft.matchesCount)[0] ?? null;
+    const bestHero =
+      [...heroRows].sort((pLeft, pRight) => pRight.rating - pLeft.rating)[0] ?? null;
+
+    const matches = ((matchesResponse.data ?? []) as MatchDbRow[])
+      .map(mapMatchRow)
+      .filter((pMatch) => pMatch.currentProposalId && pMatch.validatedAt);
+
+    const recentMatches: PlayerPublicProfile["recentMatches"] = [];
+    const resultsChronological: boolean[] = [];
+    const vsMap = new Map<string, { pseudo: string; slug: string; wins: number; losses: number }>();
+    const healthFacts: Array<{
+      matchId: string;
+      validatedAt: string;
+      winnerProfileId: string;
+      winnerRemainingHealth: number;
+      pvReliable: boolean;
+    }> = [];
+
+    let rank: number | null = null;
+
+    if (matches.length > 0) {
+      const proposalIds = matches.map((pMatch) => pMatch.currentProposalId!);
+      const opponentIds = [
+        ...new Set(
+          matches.map((pMatch) =>
+            pMatch.player1Id === profile.id ? pMatch.player2Id : pMatch.player1Id,
+          ),
+        ),
+      ];
+
+      const [rankResult, proposalsResponse, opponentsResponse] = await Promise.all([
+        rankPromise,
+        supabase.from("match_proposals").select("*").in("id", proposalIds),
+        supabase.from("profiles").select("id, pseudo, slug").in("id", opponentIds),
+      ]);
+      rank = rankResult;
+
+      if (proposalsResponse.error) {
+        throw new Error(proposalsResponse.error.message);
+      }
+      if (opponentsResponse.error) {
+        throw new Error(opponentsResponse.error.message);
+      }
+
+      const proposalsById = new Map(
+        ((proposalsResponse.data ?? []) as MatchProposalDbRow[]).map((pRow) => [
+          pRow.id,
+          mapMatchProposalRow(pRow),
+        ]),
+      );
+      const opponentsById = new Map(
+        ((opponentsResponse.data ?? []) as Array<{ id: string; pseudo: string; slug: string }>).map(
+          (pRow) => [pRow.id, pRow],
+        ),
+      );
+
+      const heroIds = [
+        ...new Set(
+          matches.flatMap((pMatch) => {
+            const proposal = proposalsById.get(pMatch.currentProposalId!);
+            if (!proposal) {
+              return [];
+            }
+            return [proposal.hero1Id, proposal.hero2Id];
+          }),
+        ),
+      ];
+
+      const heroesResponse =
+        heroIds.length > 0
+          ? await supabase.from("heroes").select("id, name, slug").in("id", heroIds)
+          : { data: [], error: null };
+
+      if (heroesResponse.error) {
+        throw new Error(heroesResponse.error.message);
+      }
+
+      const heroesById = new Map(
+        ((heroesResponse.data ?? []) as Array<{ id: string; name: string; slug: string }>).map(
+          (pRow) => [pRow.id, pRow],
+        ),
+      );
+
+      for (const match of matches) {
+        const proposal = proposalsById.get(match.currentProposalId!);
+        if (!proposal || !match.validatedAt) {
+          continue;
+        }
+
+        const opponentId = match.player1Id === profile.id ? match.player2Id : match.player1Id;
+        const opponent = opponentsById.get(opponentId);
+        const heroId = match.player1Id === profile.id ? proposal.hero1Id : proposal.hero2Id;
+        const hero = heroesById.get(heroId);
+        if (!opponent || !hero) {
+          continue;
+        }
+
+        const won = proposal.winnerProfileId === profile.id;
+        resultsChronological.push(won);
+
+        const vs = vsMap.get(opponent.id) ?? {
+          pseudo: opponent.pseudo,
+          slug: opponent.slug,
+          wins: 0,
+          losses: 0,
+        };
+        if (won) {
+          vs.wins += 1;
+        } else {
+          vs.losses += 1;
+        }
+        vsMap.set(opponent.id, vs);
+
+        healthFacts.push({
+          matchId: match.id,
+          validatedAt: match.validatedAt,
+          winnerProfileId: proposal.winnerProfileId,
+          winnerRemainingHealth: proposal.winnerRemainingHealth,
+          pvReliable: true,
+        });
+
+        recentMatches.push({
+          id: match.id,
+          playedAt: proposal.playedAt,
+          opponentPseudo: opponent.pseudo,
+          opponentSlug: opponent.slug,
+          won,
+          heroName: hero.name,
+          winnerRemainingHealth: proposal.winnerRemainingHealth,
+        });
+      }
+    } else {
+      rank = await rankPromise;
+    }
+
+    // Keep most recent first for the match list UI.
+    recentMatches.reverse();
+
+    const healthStats = computePlayerHealthStats(profile.id, healthFacts);
+
+    const ratingEvents = (eventsResponse.data ?? []) as Array<{
+      processed_at: string;
+      rating_after: string | number;
+      rating_change: string | number;
+    }>;
+
+    const eloHistory = buildEloHistoryPoints(
+      ratingEvents.map((pEvent) => ({
+        processedAt: pEvent.processed_at,
+        ratingAfter: toNumber(pEvent.rating_after),
+        ratingDisplay: roundRatingForDisplay(toNumber(pEvent.rating_after)),
+      })),
+    );
+
+    const recentRatingChanges = ratingEvents
+      .slice(-5)
+      .map((pEvent) => toNumber(pEvent.rating_change));
+    const eloDeltaRecent5 =
+      recentRatingChanges.length > 0
+        ? roundRatingForDisplay(recentRatingChanges.reduce((pSum, pChange) => pSum + pChange, 0))
+        : null;
+
+    const recordsVsOpponents = [...vsMap.values()]
+      .map((pRow) => {
+        const matchesCount = pRow.wins + pRow.losses;
+        return {
+          opponentPseudo: pRow.pseudo,
+          opponentSlug: pRow.slug,
+          wins: pRow.wins,
+          losses: pRow.losses,
+          matchesCount,
+          winRateLabel: formatWinRate(pRow.wins, matchesCount),
+        };
+      })
+      .sort((pLeft, pRight) => pRight.matchesCount - pLeft.matchesCount);
+
+    const { nemesis, favoriteOpponent } = pickOpponentExtremes(
+      recordsVsOpponents,
+      MIN_OPPONENT_MATCHES,
+    );
+    const { best: bestHeroByWinRate, worst: worstHeroByWinRate } = pickHeroWinRateExtremes(
+      heroRows,
+      MIN_HERO_MATCHES,
+    );
+
+    return {
+      profile,
+      ratingExact,
+      ratingDisplay: rating ? roundRatingForDisplay(toNumber(rating.rating)) : 1000,
+      bestRatingDisplay: rating ? roundRatingForDisplay(toNumber(rating.best_rating)) : 1000,
+      worstRatingDisplay:
+        rating && rating.worst_rating !== null
+          ? roundRatingForDisplay(toNumber(rating.worst_rating))
+          : null,
+      rank,
+      matchesCount: rating?.matches_count ?? 0,
+      winsCount: rating?.wins_count ?? 0,
+      lossesCount: rating?.losses_count ?? 0,
+      winRateLabel: formatWinRate(rating?.wins_count ?? 0, rating?.matches_count ?? 0),
+      currentStreak: rating?.current_streak ?? 0,
+      bestWinStreak: computeBestWinStreak(resultsChronological),
+      distinctOpponents: vsMap.size,
+      mostPlayedHero: mostPlayedHero
+        ? {
+            name: mostPlayedHero.name,
+            slug: mostPlayedHero.slug,
+            matchesCount: mostPlayedHero.matchesCount,
+          }
+        : null,
+      bestHero: bestHero
+        ? {
+            name: bestHero.name,
+            slug: bestHero.slug,
+            ratingDisplay: roundRatingForDisplay(bestHero.rating),
+          }
+        : null,
+      bestHeroByWinRate,
+      worstHeroByWinRate,
+      nemesis,
+      favoriteOpponent,
+      heroDistribution: [...heroRows]
+        .sort((pLeft, pRight) => pRight.matchesCount - pLeft.matchesCount)
+        .map((pRow) => ({
+          name: pRow.name,
+          slug: pRow.slug,
+          matchesCount: pRow.matchesCount,
+          winsCount: pRow.winsCount,
+          lossesCount: pRow.lossesCount,
+          winRateLabel: formatWinRate(pRow.winsCount, pRow.matchesCount),
+        })),
+      recentMatches: recentMatches.slice(0, 20),
+      recentForm: resultsChronological.slice(-10),
+      eloDeltaRecent5,
+      healthStats: {
+        averageWinnerHp: healthStats.averageWinnerHp,
+        medianWinnerHp: healthStats.medianWinnerHp,
+        closestWinHp: healthStats.closestWinHp,
+        largestWinHp: healthStats.largestWinHp,
+        winsWithAtMost5Hp: healthStats.winsWithAtMost5Hp,
+        winsWithAtLeast20Hp: healthStats.winsWithAtLeast20Hp,
+      },
+      eloHistory,
+      recordsVsOpponents,
+    };
+  },
+);

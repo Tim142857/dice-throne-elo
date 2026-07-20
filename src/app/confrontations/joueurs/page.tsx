@@ -6,6 +6,7 @@ import {
   listPublicPlayersForSelect,
 } from "@/lib/stats/queries";
 import { formatDate } from "@/lib/dates";
+import { formatEloDeltaDisplay } from "@/domain/elo/calculate";
 import { formatHpStat } from "@/domain/stats/health";
 
 export const metadata: Metadata = {
@@ -103,8 +104,7 @@ export default async function PlayerConfrontationPage({ searchParams }: PageProp
               <p
                 className={`mt-1 text-sm font-medium ${view.eloDeltaA >= 0 ? "text-elo-gain" : "text-elo-loss"}`}
               >
-                Elo cumulé : {view.eloDeltaA >= 0 ? "+" : ""}
-                {Math.round(view.eloDeltaA * 10) / 10}
+                Elo cumulé : {formatEloDeltaDisplay(view.eloDeltaA)}
               </p>
             </div>
             <div className="rounded-md border border-zinc-200 bg-white p-4">
@@ -117,8 +117,7 @@ export default async function PlayerConfrontationPage({ searchParams }: PageProp
               <p
                 className={`mt-1 text-sm font-medium ${view.eloDeltaB >= 0 ? "text-elo-gain" : "text-elo-loss"}`}
               >
-                Elo cumulé : {view.eloDeltaB >= 0 ? "+" : ""}
-                {Math.round(view.eloDeltaB * 10) / 10}
+                Elo cumulé : {formatEloDeltaDisplay(view.eloDeltaB)}
               </p>
             </div>
           </section>
