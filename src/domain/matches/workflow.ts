@@ -64,6 +64,18 @@ const allowedTransitions: Array<{
     actor: "admin",
   },
   {
+    from: "pendingOpponent",
+    to: "validated",
+    action: "resolvedByAdmin",
+    actor: "admin",
+  },
+  {
+    from: "pendingCreatorConfirmation",
+    to: "validated",
+    action: "resolvedByAdmin",
+    actor: "admin",
+  },
+  {
     from: "disputed",
     to: "cancelledByAdmin",
     action: "cancelledByAdmin",

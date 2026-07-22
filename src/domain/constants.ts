@@ -22,3 +22,8 @@ export const MATCH_RULES = {
   maxRemainingHealth: 50,
   maxNotesLength: 500,
 } as const;
+
+/** Badges: only matches played on/after this calendar day (playedAt) count. */
+export const ACHIEVEMENTS_RULES = {
+  eligibleFromPlayedOn: "2026-07-19",
+} as const;

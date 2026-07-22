@@ -106,7 +106,7 @@ export default async function DashboardPage() {
             </ul>
           ) : (
             <p className="mt-3 text-sm text-zinc-500">
-              Aucun badge pour l’instant — les matchs historiques ne comptent pas.
+              Aucun badge pour l’instant — seuls les matchs joués à partir du 19-07-2026 comptent.
             </p>
           )}
           {nearest ? (

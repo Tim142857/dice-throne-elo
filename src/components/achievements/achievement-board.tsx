@@ -21,7 +21,8 @@ export function AchievementBoard({ owned, progress, definitions }: AchievementBo
         <div>
           <h2 className="text-lg font-bold text-violet-950">Badges et succès</h2>
           <p className="mt-1 text-sm text-brand-muted">
-            {owned.length} / {definitions.length} obtenus · les matchs historiques ne comptent pas
+            {owned.length} / {definitions.length} obtenus · seuls les matchs joués à partir du
+            19-07-2026 comptent
           </p>
         </div>
       </div>

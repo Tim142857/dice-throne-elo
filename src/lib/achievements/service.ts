@@ -4,6 +4,7 @@ import {
   type AchievementMatchFact,
   type UnlockedAchievement,
 } from "@/domain/achievements/evaluate";
+import { isAchievementsEligibleByPlayedAt } from "@/domain/achievements/eligibility";
 import { ACHIEVEMENT_DEFINITIONS, getAchievementDefinition } from "@/domain/achievements/definitions";
 import { createNotification, writeAuditLog } from "@/lib/admin/audit";
 import {
@@ -120,7 +121,7 @@ export async function loadAchievementFactsForProfiles(
     facts.push({
       matchId: match.id,
       validatedAt: match.validatedAt,
-      achievementsEligible: match.achievementsEligible,
+      achievementsEligible: isAchievementsEligibleByPlayedAt(proposal.playedAt),
       player1Id: proposal.player1Id,
       player2Id: proposal.player2Id,
       hero1Id: proposal.hero1Id,
@@ -239,7 +240,20 @@ export async function evaluateAchievementsAfterValidation(pInput: {
   }
 
   const match = mapMatchRow(matchResponse.data as MatchDbRow);
-  if (!match.achievementsEligible) {
+  if (!match.currentProposalId) {
+    return { player1: [], player2: [] };
+  }
+
+  const proposalResponse = await admin
+    .from("match_proposals")
+    .select("*")
+    .eq("id", match.currentProposalId)
+    .single();
+  if (proposalResponse.error || !proposalResponse.data) {
+    throw new Error(proposalResponse.error?.message ?? "Proposition introuvable.");
+  }
+  const proposal = mapMatchProposalRow(proposalResponse.data as MatchProposalDbRow);
+  if (!isAchievementsEligibleByPlayedAt(proposal.playedAt)) {
     return { player1: [], player2: [] };
   }
 

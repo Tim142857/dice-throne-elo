@@ -1,3 +1,4 @@
+import { isAchievementsEligibleByPlayedAt } from "@/domain/achievements/eligibility";
 import {
   assertTransitionAllowed,
   buildDuplicateFingerprint,
@@ -219,6 +220,7 @@ export async function createMatch(pInput: {
       player2_id: parsed.data.player2Id,
       status: "pendingOpponent",
       played_at: parsed.data.playedAt,
+      achievements_eligible: isAchievementsEligibleByPlayedAt(parsed.data.playedAt),
     })
     .select("*")
     .single();
@@ -337,6 +339,7 @@ export async function updateMatchProposal(pInput: {
       player1_id: parsed.data.player1Id,
       player2_id: parsed.data.player2Id,
       played_at: parsed.data.playedAt,
+      achievements_eligible: isAchievementsEligibleByPlayedAt(parsed.data.playedAt),
       current_proposal_id: proposal.id,
       status: "pendingOpponent",
     })
@@ -496,7 +499,7 @@ async function finalizeValidation(pInput: {
   const title = notifyType === "adminDecision" ? "Décision administrative" : "Match validé";
   const message =
     notifyType === "adminDecision"
-      ? "Un administrateur a tranché le litige : le match est validé et pris en compte."
+      ? "Un administrateur a validé le match : il est pris en compte dans les classements."
       : "Le match a été validé et pris en compte dans les classements.";
 
   const recipientIds = new Set([pInput.match.player1Id, pInput.match.player2Id]);
@@ -665,6 +668,7 @@ export async function proposeMatchCorrection(pInput: {
     .update({
       current_proposal_id: proposal.id,
       played_at: parsed.data.playedAt,
+      achievements_eligible: isAchievementsEligibleByPlayedAt(parsed.data.playedAt),
       status: "pendingCreatorConfirmation",
     })
     .eq("id", match.id)
@@ -882,6 +886,31 @@ export async function listDisputedMatches(): Promise<MatchWithProposal[]> {
   return results;
 }
 
+export async function validatePendingMatchByAdmin(pInput: {
+  admin: ProfileRow;
+  matchId: string;
+  reason?: string | null;
+}): Promise<MatchRow> {
+  assertAdminProfile(pInput.admin);
+  const match = await loadMatch(pInput.matchId);
+
+  if (
+    match.status !== "pendingOpponent" &&
+    match.status !== "pendingCreatorConfirmation"
+  ) {
+    throw new Error("Seul un match en attente de validation peut être forcé ainsi.");
+  }
+
+  return finalizeValidation({
+    match,
+    actor: pInput.admin,
+    actionType: "resolvedByAdmin",
+    actorRole: "admin",
+    notifyType: "adminDecision",
+    reason: pInput.reason?.trim() || null,
+  });
+}
+
 export async function resolveDisputedMatchByAdmin(pInput: {
   admin: ProfileRow;
   matchId: string;
@@ -916,6 +945,7 @@ export async function resolveDisputedMatchByAdmin(pInput: {
         .update({
           current_proposal_id: proposalId,
           played_at: chosen.playedAt,
+          achievements_eligible: isAchievementsEligibleByPlayedAt(chosen.playedAt),
           player1_id: chosen.player1Id,
           player2_id: chosen.player2Id,
         })
@@ -953,6 +983,7 @@ export async function resolveDisputedMatchByAdmin(pInput: {
       .update({
         current_proposal_id: proposal.id,
         played_at: parsed.data.playedAt,
+        achievements_eligible: isAchievementsEligibleByPlayedAt(parsed.data.playedAt),
         player1_id: parsed.data.player1Id,
         player2_id: parsed.data.player2Id,
       })

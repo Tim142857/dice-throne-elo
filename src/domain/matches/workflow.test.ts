@@ -70,6 +70,25 @@ describe("match workflow transitions", () => {
     ).toBe(true);
   });
 
+  it("allows admin to force-validate a pending match", () => {
+    expect(
+      isTransitionAllowed({
+        from: "pendingOpponent",
+        to: "validated",
+        action: "resolvedByAdmin",
+        actor: "admin",
+      }),
+    ).toBe(true);
+    expect(
+      isTransitionAllowed({
+        from: "pendingCreatorConfirmation",
+        to: "validated",
+        action: "resolvedByAdmin",
+        actor: "admin",
+      }),
+    ).toBe(true);
+  });
+
   it("throws on illegal transition", () => {
     expect(() =>
       assertTransitionAllowed({

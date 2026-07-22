@@ -77,8 +77,8 @@ function unlock(
 
 /**
  * Pure evaluation of V1 achievements for one player.
- * Only achievementsEligible matches count. Historical/ineligible matches are ignored
- * for streaks and counters (neither increase nor break badge streaks).
+ * Only achievements-eligible matches count (playedAt on/after 2026-07-19).
+ * Older matches are ignored for unlock and progress (neither increase nor break streaks).
  */
 export function evaluateAchievementsForPlayer(
   pInput: EvaluateAchievementsInput,

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { MatchActionsPanel } from "@/components/matches/match-actions-panel";
+import { AdminPendingMatchActions } from "@/components/admin/admin-pending-match-actions";
 import { listActiveHeroes } from "@/lib/admin/hero-admin";
 import { getAuthContext } from "@/lib/auth/session";
 import { formatDate, formatDateTime } from "@/lib/dates";
@@ -65,12 +66,16 @@ export default async function MyMatchDetailPage({ params }: MatchDetailPageProps
   const isCreator = context.profile.id === details.match.createdByProfileId;
   const isOpponent =
     isParticipant && context.profile.id !== details.match.createdByProfileId;
+  const isAdminViewer = context.profile.role === "admin" && !isParticipant;
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-6 py-16">
       <div>
-        <Link href="/mes-matchs" className="text-sm text-zinc-600 hover:text-zinc-950">
-          ← Mes matchs
+        <Link
+          href={isAdminViewer ? "/admin/matchs?onglet=attente" : "/mes-matchs"}
+          className="text-sm text-zinc-600 hover:text-zinc-950"
+        >
+          {isAdminViewer ? "← Matchs (admin)" : "← Mes matchs"}
         </Link>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight">
           {details.player1.pseudo} vs {details.player2.pseudo}
@@ -128,16 +133,33 @@ export default async function MyMatchDetailPage({ params }: MatchDetailPageProps
         ) : null}
       </dl>
 
-      <MatchActionsPanel
-        matchId={details.match.id}
-        status={details.match.status}
-        isCreator={isCreator}
-        isOpponent={isOpponent}
-        proposal={details.proposal}
-        player1Pseudo={details.player1.pseudo}
-        player2Pseudo={details.player2.pseudo}
-        heroes={activeHeroes.map((pHero) => ({ id: pHero.id, label: pHero.name }))}
-      />
+      {isCreator || isOpponent ? (
+        <MatchActionsPanel
+          matchId={details.match.id}
+          status={details.match.status}
+          isCreator={isCreator}
+          isOpponent={isOpponent}
+          proposal={details.proposal}
+          player1Pseudo={details.player1.pseudo}
+          player2Pseudo={details.player2.pseudo}
+          heroes={activeHeroes.map((pHero) => ({ id: pHero.id, label: pHero.name }))}
+        />
+      ) : null}
+
+      {isAdminViewer ? (
+        <>
+          {details.match.status === "disputed" ? (
+            <p className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+              Ce match est en litige.{" "}
+              <Link href="/admin/litiges" className="font-medium underline">
+                Ouvrir le panneau des litiges
+              </Link>
+              .
+            </p>
+          ) : null}
+          <AdminPendingMatchActions matchId={details.match.id} status={details.match.status} />
+        </>
+      ) : null}
     </main>
   );
 }

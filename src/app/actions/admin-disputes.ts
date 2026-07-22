@@ -8,6 +8,7 @@ import { getAuthContext } from "@/lib/auth/session";
 import {
   cancelDisputedMatchByAdmin,
   resolveDisputedMatchByAdmin,
+  validatePendingMatchByAdmin,
 } from "@/lib/matches/match-service";
 
 async function requireAdminProfile() {
@@ -25,6 +26,7 @@ async function requireAdminProfile() {
 
 function revalidateDisputePaths(pMatchId: string) {
   revalidatePath("/admin/litiges");
+  revalidatePath("/admin/matchs");
   revalidatePath("/admin");
   revalidatePath("/mes-matchs");
   revalidatePath(`/mes-matchs/${pMatchId}`);
@@ -91,6 +93,28 @@ export async function resolveDisputeCustomAction(pFormData: FormData): Promise<A
     return actionSuccess(undefined, "Litige tranché : décision admin enregistrée.");
   } catch (pError) {
     return actionError(pError instanceof Error ? pError.message : "Échec de la résolution.");
+  }
+}
+
+export async function validatePendingMatchAction(pFormData: FormData): Promise<ActionResult> {
+  const admin = await requireAdminProfile();
+  if (!admin.ok) {
+    return actionError(admin.error);
+  }
+
+  const matchId = String(pFormData.get("matchId") || "");
+  const reasonRaw = String(pFormData.get("reason") || "").trim();
+
+  try {
+    await validatePendingMatchByAdmin({
+      admin: admin.profile,
+      matchId,
+      reason: reasonRaw.length > 0 ? reasonRaw : null,
+    });
+    revalidateDisputePaths(matchId);
+    return actionSuccess(undefined, "Match validé administrativement.");
+  } catch (pError) {
+    return actionError(pError instanceof Error ? pError.message : "Échec de la validation.");
   }
 }
 

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { getAuthContext } from "@/lib/auth/session";
 import { listPendingAccountRequests } from "@/lib/admin/account-admin";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const metadata: Metadata = {
   title: "Administration",
@@ -20,7 +21,15 @@ export default async function AdminHomePage() {
     redirect("/tableau-de-bord");
   }
 
-  const pending = await listPendingAccountRequests();
+  const [pending, matchesCountResponse] = await Promise.all([
+    listPendingAccountRequests(),
+    createSupabaseAdminClient()
+      .from("matches")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["pendingOpponent", "pendingCreatorConfirmation"]),
+  ]);
+
+  const pendingMatchesCount = matchesCountResponse.count ?? 0;
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-16">
@@ -47,11 +56,13 @@ export default async function AdminHomePage() {
           <p className="mt-1 text-sm text-zinc-600">Suspendre, réactiver, corriger un pseudo</p>
         </Link>
         <Link
-          href="/admin/matchs"
+          href="/admin/matchs?onglet=attente"
           className="rounded-md border border-zinc-200 bg-white p-5 hover:bg-zinc-50"
         >
           <h2 className="font-medium">Matchs</h2>
-          <p className="mt-1 text-sm text-zinc-600">Consulter les matchs récents</p>
+          <p className="mt-1 text-sm text-zinc-600">
+            {pendingMatchesCount} en attente de validation
+          </p>
         </Link>
         <Link
           href="/admin/litiges"
