@@ -64,6 +64,12 @@ export function MatchActionsPanel({
     player2RemainingHealth: player2Health,
   });
 
+  const isTerminalStatus =
+    status === "validated" ||
+    status === "cancelled" ||
+    status === "cancelledByAdmin" ||
+    status === "rejected";
+
   function runAction(
     pAction: (pFormData: FormData) => Promise<ActionResult>,
     pFormData: FormData,
@@ -81,9 +87,28 @@ export function MatchActionsPanel({
     });
   }
 
+  if (isTerminalStatus && !error && !message) {
+    return (
+      <section className="flex flex-col gap-2 rounded-md border border-zinc-200 bg-white p-5">
+        <h2 className="text-lg font-medium">Actions</h2>
+        <p className="text-sm text-zinc-600">
+          {status === "validated"
+            ? "Ce match est validé. Aucune action supplémentaire n’est nécessaire."
+            : "Ce match est clos. Aucune action disponible."}
+        </p>
+      </section>
+    );
+  }
+
   return (
     <section className="flex flex-col gap-4 rounded-md border border-zinc-200 bg-white p-5">
       <h2 className="text-lg font-medium">Actions</h2>
+
+      {status === "validated" ? (
+        <p className="text-sm text-zinc-600">
+          Ce match est validé. Aucune action supplémentaire n’est nécessaire.
+        </p>
+      ) : null}
 
       {isOpponent && status === "pendingOpponent" ? (
         <div className="flex flex-col gap-3">

@@ -474,15 +474,32 @@ async function finalizeValidation(pInput: {
     processedAt: validatedAt,
   });
 
+  let unlocks: {
+    player1: import("@/domain/achievements/evaluate").UnlockedAchievement[];
+    player2: import("@/domain/achievements/evaluate").UnlockedAchievement[];
+  } = { player1: [], player2: [] };
+
   try {
     const { evaluateAchievementsAfterValidation } = await import("@/lib/achievements/service");
-    await evaluateAchievementsAfterValidation({
+    unlocks = await evaluateAchievementsAfterValidation({
       matchId: pInput.match.id,
       player1Id: proposal.player1Id,
       player2Id: proposal.player2Id,
     });
   } catch {
     // Achievements must not block match validation; admin recompute can repair.
+  }
+
+  try {
+    const { emitActivityForValidatedMatch } = await import("@/lib/activity/emit");
+    await emitActivityForValidatedMatch({
+      matchId: pInput.match.id,
+      proposal,
+      occurredAt: validatedAt,
+      unlocks,
+    });
+  } catch {
+    // Activity feed must not block match validation.
   }
 
   await recordAction({

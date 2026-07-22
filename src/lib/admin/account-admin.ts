@@ -289,6 +289,13 @@ export async function approveAccountRequest(pInput: {
       targetProfileId: decision.targetProfileId,
     },
   });
+
+  try {
+    const { emitActivityForPlayerJoined } = await import("@/lib/activity/emit");
+    await emitActivityForPlayerJoined({ profileId: decision.targetProfileId });
+  } catch {
+    // Activity feed must not block account approval.
+  }
 }
 
 export async function rejectAccountRequest(pInput: {

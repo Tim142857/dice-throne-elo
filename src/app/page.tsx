@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { ActivityFeedList } from "@/components/activity/activity-feed-list";
+import { listActivityFeed } from "@/lib/activity/service";
 import { getAuthUser } from "@/lib/auth/session";
 import { brandImages } from "@/lib/branding";
 import { listGeneralRankings } from "@/lib/rankings/queries";
@@ -8,9 +10,12 @@ import { listGeneralRankings } from "@/lib/rankings/queries";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [user, rankingsResult] = await Promise.all([
+  const [user, rankingsResult, feedResult] = await Promise.all([
     getAuthUser(),
-    listGeneralRankings({ sort: "rating" }).catch(() => [] as Awaited<ReturnType<typeof listGeneralRankings>>),
+    listGeneralRankings({ sort: "rating" }).catch(
+      () => [] as Awaited<ReturnType<typeof listGeneralRankings>>,
+    ),
+    listActivityFeed(8).catch(() => [] as Awaited<ReturnType<typeof listActivityFeed>>),
   ]);
   const topPlayers = rankingsResult.slice(0, 5);
   const isLoggedIn = Boolean(user);
@@ -95,25 +100,37 @@ export default async function HomePage() {
         </article>
 
         <article className="brand-card rounded-2xl p-6">
-          <h2 className="text-xl font-bold text-violet-950">Comment ça marche</h2>
-          <ol className="mt-5 space-y-4 text-sm leading-6 text-brand-muted">
-            <li className="rounded-xl bg-violet-50 px-4 py-3">
-              <span className="font-semibold text-violet-900">1.</span> Inscrivez-vous et faites
-              valider votre compte.
-            </li>
-            <li className="rounded-xl bg-amber-50 px-4 py-3">
-              <span className="font-semibold text-amber-900">2.</span> Déclarez un match avec votre
-              adversaire.
-            </li>
-            <li className="rounded-xl bg-rose-50 px-4 py-3">
-              <span className="font-semibold text-rose-900">3.</span> Validez ensemble et suivez
-              votre Elo.
-            </li>
-          </ol>
-          <Link href="/matchs" className="btn-secondary mt-6 w-full">
-            Explorer les matchs
-          </Link>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xl font-bold text-violet-950">Actualités</h2>
+            <Link href="/actualites" className="text-sm font-medium text-violet-700 hover:text-violet-950">
+              Tout voir
+            </Link>
+          </div>
+          <div className="mt-4">
+            <ActivityFeedList items={feedResult} />
+          </div>
         </article>
+      </section>
+
+      <section className="brand-card rounded-2xl p-6">
+        <h2 className="text-xl font-bold text-violet-950">Comment ça marche</h2>
+        <ol className="mt-5 grid gap-4 text-sm leading-6 text-brand-muted sm:grid-cols-3">
+          <li className="rounded-xl bg-violet-50 px-4 py-3">
+            <span className="font-semibold text-violet-900">1.</span> Inscrivez-vous et faites
+            valider votre compte.
+          </li>
+          <li className="rounded-xl bg-amber-50 px-4 py-3">
+            <span className="font-semibold text-amber-900">2.</span> Déclarez un match avec votre
+            adversaire.
+          </li>
+          <li className="rounded-xl bg-rose-50 px-4 py-3">
+            <span className="font-semibold text-rose-900">3.</span> Validez ensemble et suivez
+            votre Elo.
+          </li>
+        </ol>
+        <Link href="/matchs" className="btn-secondary mt-6 inline-flex">
+          Explorer les matchs
+        </Link>
       </section>
     </main>
   );

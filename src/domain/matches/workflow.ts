@@ -122,9 +122,13 @@ export function assertTransitionAllowed(pInput: {
   action: MatchActionType;
   actor: MatchActorRole;
 }): void {
-  if (!isTransitionAllowed(pInput)) {
-    throw new Error("Transition de statut non autorisée.");
+  if (isTransitionAllowed(pInput)) {
+    return;
   }
+  if (pInput.from === "validated") {
+    throw new Error("Ce match est déjà validé.");
+  }
+  throw new Error("Transition de statut non autorisée.");
 }
 
 export function resolveActorRole(pInput: {

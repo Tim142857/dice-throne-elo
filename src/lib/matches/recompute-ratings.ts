@@ -96,6 +96,7 @@ function serializeRecomputePayload(pResult: RecomputeResult) {
       matchesCount: pRow.matchesCount,
       winsCount: pRow.winsCount,
       lossesCount: pRow.lossesCount,
+      drawsCount: pRow.drawsCount,
       currentStreak: pRow.currentStreak,
       bestRating: pRow.bestRating,
       worstRating: pRow.worstRating === null ? "" : String(pRow.worstRating),
@@ -108,6 +109,7 @@ function serializeRecomputePayload(pResult: RecomputeResult) {
       matchesCount: pRow.matchesCount,
       winsCount: pRow.winsCount,
       lossesCount: pRow.lossesCount,
+      drawsCount: pRow.drawsCount,
       lastUsedAt: pRow.lastUsedAt ?? "",
     })),
   };

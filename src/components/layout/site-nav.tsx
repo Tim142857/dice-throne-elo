@@ -102,6 +102,9 @@ export function SiteNav({ children, isLoggedIn, unreadCount = 0 }: SiteNavProps)
         Matchs
       </Link>
       <NavDropdown label="Explorer">
+        <Link href="/actualites" role="menuitem" className={menuItemClassName} onClick={closeMobile}>
+          Actualités
+        </Link>
         <Link href="/heros" role="menuitem" className={menuItemClassName} onClick={closeMobile}>
           Héros
         </Link>
@@ -212,6 +215,9 @@ export function SiteNav({ children, isLoggedIn, unreadCount = 0 }: SiteNavProps)
               </Link>
               <Link href="/matchs" className={linkClassName} onClick={closeMobile}>
                 Matchs
+              </Link>
+              <Link href="/actualites" className={linkClassName} onClick={closeMobile}>
+                Actualités
               </Link>
               <Link href="/heros" className={linkClassName} onClick={closeMobile}>
                 Héros
