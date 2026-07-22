@@ -162,9 +162,11 @@ async function importParsedRow(pRow: HistoricalMatchParsedRow): Promise<"importe
   ]);
 
   const winnerId =
-    normalizePseudo(pRow.winnerPseudo) === normalizePseudo(pRow.player1Pseudo)
-      ? player1Id
-      : player2Id;
+    pRow.winnerPseudo === null
+      ? null
+      : normalizePseudo(pRow.winnerPseudo) === normalizePseudo(pRow.player1Pseudo)
+        ? player1Id
+        : player2Id;
 
   const matchInsert = await admin
     .from("matches")

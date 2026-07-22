@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 
 import { MATCH_RULES } from "@/domain/constants";
-import { validateMatchFinalHealth } from "@/domain/matches/final-health";
 import { normalizeText, slugify } from "@/lib/text";
 import { normalizePseudo } from "@/validation/pseudo";
 
@@ -25,7 +24,8 @@ export type HistoricalMatchParsedRow = {
   hero1Name: string;
   player2Pseudo: string;
   hero2Name: string;
-  winnerPseudo: string;
+  /** Null = match nul. */
+  winnerPseudo: string | null;
   winnerRemainingHealth: number;
   player1RemainingHealth: number;
   player2RemainingHealth: number;
@@ -38,6 +38,25 @@ export type HistoricalMatchRowIssue = {
   rowNumber: number;
   message: string;
 };
+
+const DRAW_TOKENS = new Set([
+  "nul",
+  "nulle",
+  "draw",
+  "matchnul",
+  "egalite",
+  "tie",
+  "x",
+  "-",
+]);
+
+function isHistoricalDrawToken(pValue: string): boolean {
+  const compact = normalizeText(pValue)
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/\s+/g, "");
+  return DRAW_TOKENS.has(compact);
+}
 
 const HEADER_ALIASES: Record<keyof Omit<HistoricalMatchRawRow, "rowNumber">, string[]> = {
   playedAt: ["playedat", "date", "played_at", "matchdate", "jour"],
@@ -143,7 +162,7 @@ export function buildImportSourceKey(pInput: {
   hero1Name: string;
   player2Pseudo: string;
   hero2Name: string;
-  winnerPseudo: string;
+  winnerPseudo: string | null;
   winnerRemainingHealth: number;
   notes: string | null;
   rowNumber: number;
@@ -154,7 +173,7 @@ export function buildImportSourceKey(pInput: {
     normalizeText(pInput.hero1Name),
     normalizePseudo(pInput.player2Pseudo),
     normalizeText(pInput.hero2Name),
-    normalizePseudo(pInput.winnerPseudo),
+    pInput.winnerPseudo === null ? "__draw__" : normalizePseudo(pInput.winnerPseudo),
     String(pInput.winnerRemainingHealth),
     pInput.notes ?? "",
     String(pInput.rowNumber),
@@ -207,7 +226,8 @@ export function parseHistoricalMatchRow(
   const player2Pseudo = pRaw.player2.trim().replace(/\s+/g, " ");
   const hero1Name = pRaw.hero1.trim().replace(/\s+/g, " ");
   const hero2Name = pRaw.hero2.trim().replace(/\s+/g, " ");
-  const winnerPseudo = pRaw.winner.trim().replace(/\s+/g, " ");
+  const winnerRaw = pRaw.winner.trim().replace(/\s+/g, " ");
+  const isDraw = isHistoricalDrawToken(winnerRaw);
 
   if (player1Pseudo.length < 3 || player2Pseudo.length < 3) {
     return {
@@ -222,14 +242,15 @@ export function parseHistoricalMatchRow(
     };
   }
   if (
-    normalizePseudo(winnerPseudo) !== normalizePseudo(player1Pseudo) &&
-    normalizePseudo(winnerPseudo) !== normalizePseudo(player2Pseudo)
+    !isDraw &&
+    normalizePseudo(winnerRaw) !== normalizePseudo(player1Pseudo) &&
+    normalizePseudo(winnerRaw) !== normalizePseudo(player2Pseudo)
   ) {
     return {
       ok: false,
       issue: {
         rowNumber: pRaw.rowNumber,
-        message: "Le vainqueur doit être l’un des deux joueurs.",
+        message: "Le vainqueur doit être l’un des deux joueurs, ou « nul » / « draw ».",
       },
     };
   }
@@ -268,28 +289,37 @@ export function parseHistoricalMatchRow(
         ok: false,
         issue: {
           rowNumber: pRaw.rowNumber,
-          message: `PV restants du perdant invalides (0-${MATCH_RULES.maxRemainingHealth}).`,
+          message: `PV restants du second joueur invalides (0-${MATCH_RULES.maxRemainingHealth}).`,
         },
       };
     }
   }
 
-  const winnerIsPlayer1 = normalizePseudo(winnerPseudo) === normalizePseudo(player1Pseudo);
-  const player1RemainingHealth = winnerIsPlayer1 ? health : loserHealth;
-  const player2RemainingHealth = winnerIsPlayer1 ? loserHealth : health;
-  const healthError = validateMatchFinalHealth({
-    player1Id: "player1",
-    player2Id: "player2",
-    winnerProfileId: winnerIsPlayer1 ? "player1" : "player2",
-    player1RemainingHealth,
-    player2RemainingHealth,
-  });
-  if (healthError) {
-    return {
-      ok: false,
-      issue: { rowNumber: pRaw.rowNumber, message: healthError },
-    };
+  let player1RemainingHealth: number;
+  let player2RemainingHealth: number;
+
+  if (isDraw) {
+    player1RemainingHealth = health;
+    player2RemainingHealth = loserHealthRaw.length > 0 ? loserHealth : health;
+  } else {
+    const winnerIsPlayer1 = normalizePseudo(winnerRaw) === normalizePseudo(player1Pseudo);
+    player1RemainingHealth = winnerIsPlayer1 ? health : loserHealth;
+    player2RemainingHealth = winnerIsPlayer1 ? loserHealth : health;
   }
+
+  // Outcome is always derived from remaining HP (including 0-0 draws).
+  const derivedWinnerPseudo =
+    player1RemainingHealth === player2RemainingHealth
+      ? null
+      : player1RemainingHealth > player2RemainingHealth
+        ? player1Pseudo
+        : player2Pseudo;
+  const winnerRemainingHealth =
+    derivedWinnerPseudo === null
+      ? player1RemainingHealth
+      : derivedWinnerPseudo === player1Pseudo
+        ? player1RemainingHealth
+        : player2RemainingHealth;
 
   const notesRaw = pRaw.notes.trim();
   if (notesRaw.length > MATCH_RULES.maxNotesLength) {
@@ -306,8 +336,8 @@ export function parseHistoricalMatchRow(
     hero1Name,
     player2Pseudo,
     hero2Name,
-    winnerPseudo,
-    winnerRemainingHealth: health,
+    winnerPseudo: derivedWinnerPseudo,
+    winnerRemainingHealth,
     notes,
     rowNumber: pRaw.rowNumber,
   });
@@ -321,8 +351,8 @@ export function parseHistoricalMatchRow(
       hero1Name,
       player2Pseudo,
       hero2Name,
-      winnerPseudo,
-      winnerRemainingHealth: health,
+      winnerPseudo: derivedWinnerPseudo,
+      winnerRemainingHealth,
       player1RemainingHealth,
       player2RemainingHealth,
       notes,

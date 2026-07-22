@@ -10,7 +10,11 @@ type ValidatedMatchCardProps = {
 
 export function ValidatedMatchCard({ match }: ValidatedMatchCardProps) {
   const winnerPseudo =
-    match.winnerProfileId === match.player1.id ? match.player1.pseudo : match.player2.pseudo;
+    match.winnerProfileId === null
+      ? null
+      : match.winnerProfileId === match.player1.id
+        ? match.player1.pseudo
+        : match.player2.pseudo;
 
   return (
     <article
@@ -44,8 +48,10 @@ export function ValidatedMatchCard({ match }: ValidatedMatchCardProps) {
           </dd>
         </div>
         <div>
-          <dt className="text-zinc-500">Vainqueur</dt>
-          <dd className="font-medium text-zinc-900">{winnerPseudo}</dd>
+          <dt className="text-zinc-500">Issue</dt>
+          <dd className="font-medium text-zinc-900">
+            {winnerPseudo ? `Victoire — ${winnerPseudo}` : "Match nul"}
+          </dd>
         </div>
       </dl>
     </article>

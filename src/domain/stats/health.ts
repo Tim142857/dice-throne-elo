@@ -1,7 +1,7 @@
 export type HealthMatchFact = {
   matchId: string;
   validatedAt: string;
-  winnerProfileId: string;
+  winnerProfileId: string | null;
   winnerRemainingHealth: number;
   pvReliable: boolean;
 };
@@ -83,7 +83,9 @@ export function computeConfrontationHealthStats(
   pPlayerBId: string,
   pMatches: HealthMatchFact[],
 ): ConfrontationHealthStats {
-  const reliable = pMatches.filter((pMatch) => pMatch.pvReliable);
+  const reliable = pMatches.filter(
+    (pMatch) => pMatch.pvReliable && pMatch.winnerProfileId !== null,
+  );
   const hps = reliable.map((pMatch) => pMatch.winnerRemainingHealth);
   const aWins = reliable.filter((pMatch) => pMatch.winnerProfileId === pPlayerAId);
   const bWins = reliable.filter((pMatch) => pMatch.winnerProfileId === pPlayerBId);
@@ -106,14 +108,14 @@ export function computeConfrontationHealthStats(
     medianWinnerHp: median(hps),
     closestWin: closest
       ? {
-          winnerProfileId: closest.winnerProfileId,
+          winnerProfileId: closest.winnerProfileId!,
           hp: closest.winnerRemainingHealth,
           matchId: closest.matchId,
         }
       : null,
     largestWin: largest
       ? {
-          winnerProfileId: largest.winnerProfileId,
+          winnerProfileId: largest.winnerProfileId!,
           hp: largest.winnerRemainingHealth,
           matchId: largest.matchId,
         }

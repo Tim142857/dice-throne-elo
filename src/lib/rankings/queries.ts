@@ -279,14 +279,14 @@ export type PlayerPublicProfile = {
     lossesCount: number;
     winRateLabel: string;
   }>;
-  recentForm: boolean[];
+  recentForm: Array<boolean | null>;
   eloDeltaRecent5: number | null;
   recentMatches: Array<{
     id: string;
     playedAt: string;
     opponentPseudo: string;
     opponentSlug: string;
-    won: boolean;
+    won: boolean | null;
     heroName: string;
     winnerRemainingHealth: number;
   }>;
@@ -476,12 +476,15 @@ export const getPlayerPublicProfileBySlug = cache(
       .filter((pMatch) => pMatch.currentProposalId && pMatch.validatedAt);
 
     const recentMatches: PlayerPublicProfile["recentMatches"] = [];
-    const resultsChronological: boolean[] = [];
-    const vsMap = new Map<string, { pseudo: string; slug: string; wins: number; losses: number }>();
+    const resultsChronological: Array<boolean | null> = [];
+    const vsMap = new Map<
+      string,
+      { pseudo: string; slug: string; wins: number; losses: number; draws: number }
+    >();
     const healthFacts: Array<{
       matchId: string;
       validatedAt: string;
-      winnerProfileId: string;
+      winnerProfileId: string | null;
       winnerRemainingHealth: number;
       pvReliable: boolean;
     }> = [];
@@ -565,7 +568,10 @@ export const getPlayerPublicProfileBySlug = cache(
           continue;
         }
 
-        const won = proposal.winnerProfileId === profile.id;
+        const won =
+          proposal.winnerProfileId === null
+            ? null
+            : proposal.winnerProfileId === profile.id;
         resultsChronological.push(won);
 
         const vs = vsMap.get(opponent.id) ?? {
@@ -573,11 +579,14 @@ export const getPlayerPublicProfileBySlug = cache(
           slug: opponent.slug,
           wins: 0,
           losses: 0,
+          draws: 0,
         };
-        if (won) {
+        if (won === true) {
           vs.wins += 1;
-        } else {
+        } else if (won === false) {
           vs.losses += 1;
+        } else {
+          vs.draws += 1;
         }
         vsMap.set(opponent.id, vs);
 
@@ -632,7 +641,7 @@ export const getPlayerPublicProfileBySlug = cache(
 
     const recordsVsOpponents = [...vsMap.values()]
       .map((pRow) => {
-        const matchesCount = pRow.wins + pRow.losses;
+        const matchesCount = pRow.wins + pRow.losses + pRow.draws;
         return {
           opponentPseudo: pRow.pseudo,
           opponentSlug: pRow.slug,

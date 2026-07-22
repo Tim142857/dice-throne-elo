@@ -416,15 +416,19 @@ export default async function PlayerProfilePage({ params, searchParams }: Player
                     </Link>
                     <p className="text-brand-muted">
                       {formatDate(pMatch.playedAt)} · {pMatch.heroName}
-                      {pMatch.won ? ` · ${pMatch.winnerRemainingHealth} PV` : ""}
+                      {pMatch.won === true ? ` · ${pMatch.winnerRemainingHealth} PV` : ""}
                     </p>
                   </div>
                   <span
                     className={
-                      pMatch.won ? "font-semibold text-elo-gain" : "font-semibold text-elo-loss"
+                      pMatch.won === null
+                        ? "font-semibold text-zinc-600"
+                        : pMatch.won
+                          ? "font-semibold text-elo-gain"
+                          : "font-semibold text-elo-loss"
                     }
                   >
-                    {pMatch.won ? "Victoire" : "Défaite"}
+                    {pMatch.won === null ? "Nul" : pMatch.won ? "Victoire" : "Défaite"}
                   </span>
                 </li>
               ))}

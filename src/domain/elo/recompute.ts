@@ -13,7 +13,7 @@ export type RecomputeMatchInput = {
   player2Id: string;
   hero1Id: string;
   hero2Id: string;
-  winnerProfileId: string;
+  winnerProfileId: string | null;
 };
 
 export type RatingEventDraft = {
@@ -35,6 +35,7 @@ export type PlayerRatingSnapshot = {
   matchesCount: number;
   winsCount: number;
   lossesCount: number;
+  drawsCount: number;
   currentStreak: number;
   bestRating: number;
   worstRating: number | null;
@@ -48,6 +49,7 @@ export type PlayerHeroRatingSnapshot = {
   matchesCount: number;
   winsCount: number;
   lossesCount: number;
+  drawsCount: number;
   lastUsedAt: string | null;
 };
 
@@ -95,6 +97,7 @@ function ensurePlayer(
     matchesCount: 0,
     winsCount: 0,
     lossesCount: 0,
+    drawsCount: 0,
     currentStreak: 0,
     bestRating: PLAYER_ELO.initialRating,
     worstRating: null,
@@ -121,6 +124,7 @@ function ensureHero(
     matchesCount: 0,
     winsCount: 0,
     lossesCount: 0,
+    drawsCount: 0,
     lastUsedAt: null,
   };
   pMap.set(key, created);
@@ -145,7 +149,8 @@ export function recomputeRatingsFromMatches(
   }
 
   for (const match of ordered) {
-    const winnerIsPlayer1 = match.winnerProfileId === match.player1Id;
+    const isDraw = match.winnerProfileId === null;
+    const winnerIsPlayer1 = isDraw ? null : match.winnerProfileId === match.player1Id;
     const player1 = ensurePlayer(players, match.player1Id);
     const player2 = ensurePlayer(players, match.player2Id);
     const hero1 = ensureHero(heroes, match.player1Id, match.hero1Id);
@@ -230,9 +235,10 @@ export function recomputeRatingsFromMatches(
       profileId: match.player1Id,
       rating: general.playerA.ratingAfter,
       matchesCount: player1.matchesCount + 1,
-      winsCount: player1.winsCount + (winnerIsPlayer1 ? 1 : 0),
-      lossesCount: player1.lossesCount + (winnerIsPlayer1 ? 0 : 1),
-      currentStreak: nextWinStreak(player1.currentStreak, winnerIsPlayer1),
+      winsCount: player1.winsCount + (winnerIsPlayer1 === true ? 1 : 0),
+      lossesCount: player1.lossesCount + (winnerIsPlayer1 === false ? 1 : 0),
+      drawsCount: player1.drawsCount + (isDraw ? 1 : 0),
+      currentStreak: nextWinStreak(player1.currentStreak, winnerIsPlayer1 === true),
       bestRating: extremes1.bestRating,
       worstRating: extremes1.worstRating,
       lastValidatedMatchAt: match.validatedAt,
@@ -242,9 +248,10 @@ export function recomputeRatingsFromMatches(
       profileId: match.player2Id,
       rating: general.playerB.ratingAfter,
       matchesCount: player2.matchesCount + 1,
-      winsCount: player2.winsCount + (winnerIsPlayer1 ? 0 : 1),
-      lossesCount: player2.lossesCount + (winnerIsPlayer1 ? 1 : 0),
-      currentStreak: nextWinStreak(player2.currentStreak, !winnerIsPlayer1),
+      winsCount: player2.winsCount + (winnerIsPlayer1 === false ? 1 : 0),
+      lossesCount: player2.lossesCount + (winnerIsPlayer1 === true ? 1 : 0),
+      drawsCount: player2.drawsCount + (isDraw ? 1 : 0),
+      currentStreak: nextWinStreak(player2.currentStreak, winnerIsPlayer1 === false),
       bestRating: extremes2.bestRating,
       worstRating: extremes2.worstRating,
       lastValidatedMatchAt: match.validatedAt,
@@ -255,8 +262,9 @@ export function recomputeRatingsFromMatches(
       heroId: match.hero1Id,
       rating: playerHero.playerA.ratingAfter,
       matchesCount: hero1.matchesCount + 1,
-      winsCount: hero1.winsCount + (winnerIsPlayer1 ? 1 : 0),
-      lossesCount: hero1.lossesCount + (winnerIsPlayer1 ? 0 : 1),
+      winsCount: hero1.winsCount + (winnerIsPlayer1 === true ? 1 : 0),
+      lossesCount: hero1.lossesCount + (winnerIsPlayer1 === false ? 1 : 0),
+      drawsCount: hero1.drawsCount + (isDraw ? 1 : 0),
       lastUsedAt: match.validatedAt,
     });
 
@@ -265,8 +273,9 @@ export function recomputeRatingsFromMatches(
       heroId: match.hero2Id,
       rating: playerHero.playerB.ratingAfter,
       matchesCount: hero2.matchesCount + 1,
-      winsCount: hero2.winsCount + (winnerIsPlayer1 ? 0 : 1),
-      lossesCount: hero2.lossesCount + (winnerIsPlayer1 ? 1 : 0),
+      winsCount: hero2.winsCount + (winnerIsPlayer1 === false ? 1 : 0),
+      lossesCount: hero2.lossesCount + (winnerIsPlayer1 === true ? 1 : 0),
+      drawsCount: hero2.drawsCount + (isDraw ? 1 : 0),
       lastUsedAt: match.validatedAt,
     });
   }
@@ -291,7 +300,7 @@ export function ratingsFingerprint(pResult: RecomputeResult): string {
   const players = pResult.playerRatings
     .map(
       (pRow) =>
-        `${pRow.profileId}:${pRow.rating.toFixed(6)}:${pRow.matchesCount}:${pRow.winsCount}:${pRow.lossesCount}:${pRow.currentStreak}`,
+        `${pRow.profileId}:${pRow.rating.toFixed(6)}:${pRow.matchesCount}:${pRow.winsCount}:${pRow.lossesCount}:${pRow.drawsCount}:${pRow.currentStreak}`,
     )
     .join("|");
   const heroes = pResult.playerHeroRatings

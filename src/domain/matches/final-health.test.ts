@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  describeMatchOutcomeFromHealth,
   formatMatchFinalHealthScore,
   getWinnerRemainingHealthFromFinalHealth,
+  resolveWinnerProfileIdFromHealth,
   validateMatchFinalHealth,
 } from "@/domain/matches/final-health";
 
@@ -13,41 +15,82 @@ describe("formatMatchFinalHealthScore", () => {
   });
 });
 
-describe("validateMatchFinalHealth", () => {
-  const base = {
-    player1Id: "p1",
-    player2Id: "p2",
-    winnerProfileId: "p1",
-  };
-
-  it("accepts a knockout", () => {
+describe("resolveWinnerProfileIdFromHealth", () => {
+  it("picks the side with more remaining health", () => {
     expect(
-      validateMatchFinalHealth({
-        ...base,
-        player1RemainingHealth: 15,
+      resolveWinnerProfileIdFromHealth({
+        player1Id: "p1",
+        player2Id: "p2",
+        player1RemainingHealth: 12,
+        player2RemainingHealth: 8,
+      }),
+    ).toBe("p1");
+    expect(
+      resolveWinnerProfileIdFromHealth({
+        player1Id: "p1",
+        player2Id: "p2",
+        player1RemainingHealth: 0,
+        player2RemainingHealth: 5,
+      }),
+    ).toBe("p2");
+  });
+
+  it("returns null on equal health including 0-0", () => {
+    expect(
+      resolveWinnerProfileIdFromHealth({
+        player1Id: "p1",
+        player2Id: "p2",
+        player1RemainingHealth: 10,
+        player2RemainingHealth: 10,
+      }),
+    ).toBeNull();
+    expect(
+      resolveWinnerProfileIdFromHealth({
+        player1Id: "p1",
+        player2Id: "p2",
+        player1RemainingHealth: 0,
         player2RemainingHealth: 0,
       }),
     ).toBeNull();
   });
+});
 
-  it("accepts a timer win", () => {
+describe("describeMatchOutcomeFromHealth", () => {
+  it("labels draws and wins", () => {
+    expect(
+      describeMatchOutcomeFromHealth({
+        player1Id: "p1",
+        player2Id: "p2",
+        player1Label: "Alice",
+        player2Label: "Bob",
+        player1RemainingHealth: 0,
+        player2RemainingHealth: 0,
+      }),
+    ).toBe("Match nul");
+    expect(
+      describeMatchOutcomeFromHealth({
+        player1Id: "p1",
+        player2Id: "p2",
+        player1Label: "Alice",
+        player2Label: "Bob",
+        player1RemainingHealth: 3,
+        player2RemainingHealth: 0,
+      }),
+    ).toBe("Victoire — Alice");
+  });
+});
+
+describe("validateMatchFinalHealth", () => {
+  it("accepts any health pair once ranges are valid", () => {
     expect(
       validateMatchFinalHealth({
-        ...base,
-        player1RemainingHealth: 12,
-        player2RemainingHealth: 8,
+        player1Id: "p1",
+        player2Id: "p2",
+        winnerProfileId: null,
+        player1RemainingHealth: 0,
+        player2RemainingHealth: 0,
       }),
     ).toBeNull();
-  });
-
-  it("rejects equal non-zero health", () => {
-    expect(
-      validateMatchFinalHealth({
-        ...base,
-        player1RemainingHealth: 10,
-        player2RemainingHealth: 10,
-      }),
-    ).not.toBeNull();
   });
 });
 
@@ -61,5 +104,16 @@ describe("getWinnerRemainingHealthFromFinalHealth", () => {
         player2RemainingHealth: 11,
       }),
     ).toBe(11);
+  });
+
+  it("returns shared health on draw", () => {
+    expect(
+      getWinnerRemainingHealthFromFinalHealth({
+        player1Id: "p1",
+        winnerProfileId: null,
+        player1RemainingHealth: 0,
+        player2RemainingHealth: 0,
+      }),
+    ).toBe(0);
   });
 });

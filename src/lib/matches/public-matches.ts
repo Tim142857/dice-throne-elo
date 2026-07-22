@@ -23,7 +23,7 @@ export type PublicValidatedMatch = {
     slug: string;
     heroName: string;
   };
-  winnerProfileId: string;
+  winnerProfileId: string | null;
   player1RemainingHealth: number;
   player2RemainingHealth: number;
 };

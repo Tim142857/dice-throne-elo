@@ -152,7 +152,7 @@ export type HeroDetailStats = {
     playedAt: string;
     playerPseudo: string;
     opponentHeroName: string;
-    won: boolean;
+    won: boolean | null;
   }>;
 };
 
@@ -231,7 +231,8 @@ export async function getHeroDetailStats(
       playedAt: fact.playedAt,
       playerPseudo: player.pseudo,
       opponentHeroName: heroesById.get(opponentHeroId)?.name ?? "?",
-      won: fact.winnerProfileId === playerId,
+      won:
+        fact.winnerProfileId === null ? null : fact.winnerProfileId === playerId,
     });
   }
 
@@ -281,7 +282,7 @@ export type PlayerConfrontationView = {
   recentMatches: Array<{
     id: string;
     playedAt: string;
-    winnerPseudo: string;
+    winnerPseudo: string | null;
     heroAName: string;
     heroBName: string;
     winnerRemainingHealth: number;
@@ -368,7 +369,12 @@ export async function getPlayerConfrontation(
     recentMatches.push({
       id: fact.matchId,
       playedAt: fact.playedAt,
-      winnerPseudo: fact.winnerProfileId === playerA.id ? playerA.pseudo : playerB.pseudo,
+      winnerPseudo:
+        fact.winnerProfileId === null
+          ? null
+          : fact.winnerProfileId === playerA.id
+            ? playerA.pseudo
+            : playerB.pseudo,
       heroAName: heroesById.get(aIsPlayer1 ? fact.hero1Id : fact.hero2Id)?.name ?? "?",
       heroBName: heroesById.get(aIsPlayer1 ? fact.hero2Id : fact.hero1Id)?.name ?? "?",
       winnerRemainingHealth: fact.winnerRemainingHealth,
@@ -421,7 +427,7 @@ export type HeroConfrontationView = {
   recentMatches: Array<{
     id: string;
     playedAt: string;
-    winnerHeroName: string;
+    winnerHeroName: string | null;
     player1Pseudo: string;
     player2Pseudo: string;
   }>;
@@ -478,11 +484,17 @@ export async function getHeroConfrontation(
     const player1 = mapProfileRow(p1Response.data as ProfileDbRow);
     const player2 = mapProfileRow(p2Response.data as ProfileDbRow);
     const winnerIsPlayer1 = fact.winnerProfileId === fact.player1Id;
-    const winnerHeroId = winnerIsPlayer1 ? fact.hero1Id : fact.hero2Id;
+    const winnerHeroId =
+      fact.winnerProfileId === null
+        ? null
+        : winnerIsPlayer1
+          ? fact.hero1Id
+          : fact.hero2Id;
     recentMatches.push({
       id: fact.matchId,
       playedAt: fact.playedAt,
-      winnerHeroName: winnerHeroId === heroA.id ? heroA.name : heroB.name,
+      winnerHeroName:
+        winnerHeroId === null ? null : winnerHeroId === heroA.id ? heroA.name : heroB.name,
       player1Pseudo: player1.pseudo,
       player2Pseudo: player2.pseudo,
     });

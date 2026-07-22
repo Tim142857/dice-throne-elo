@@ -15,6 +15,7 @@ type RatingRow = {
   matches_count: number;
   wins_count: number;
   losses_count: number;
+  draws_count?: number;
   current_streak: number;
   best_rating: string | number;
   worst_rating: string | number | null;
@@ -28,6 +29,7 @@ type HeroRatingRow = {
   matches_count: number;
   wins_count: number;
   losses_count: number;
+  draws_count?: number;
 };
 
 function toNumber(pValue: string | number | null | undefined): number {
@@ -130,7 +132,10 @@ export async function applyEloForValidatedMatch(pInput: {
     return;
   }
 
-  const winnerIsPlayer1 = pInput.proposal.winnerProfileId === pInput.proposal.player1Id;
+  const isDraw = pInput.proposal.winnerProfileId === null;
+  const winnerIsPlayer1 = isDraw
+    ? null
+    : pInput.proposal.winnerProfileId === pInput.proposal.player1Id;
 
   const [rating1, rating2, heroRating1, heroRating2] = await Promise.all([
     getOrCreatePlayerRating(pInput.proposal.player1Id),
@@ -163,8 +168,8 @@ export async function applyEloForValidatedMatch(pInput: {
     matchesCountBefore: rating2.matches_count,
   });
 
-  const streak1 = nextWinStreak(rating1.current_streak, winnerIsPlayer1);
-  const streak2 = nextWinStreak(rating2.current_streak, !winnerIsPlayer1);
+  const streak1 = nextWinStreak(rating1.current_streak, winnerIsPlayer1 === true);
+  const streak2 = nextWinStreak(rating2.current_streak, winnerIsPlayer1 === false);
 
   const { error: eventsError } = await admin.from("rating_events").insert([
     {
@@ -225,13 +230,19 @@ export async function applyEloForValidatedMatch(pInput: {
     throw new Error(eventsError.message);
   }
 
+  const draws1 = rating1.draws_count ?? 0;
+  const draws2 = rating2.draws_count ?? 0;
+  const heroDraws1 = heroRating1.draws_count ?? 0;
+  const heroDraws2 = heroRating2.draws_count ?? 0;
+
   const { error: rating1Error } = await admin
     .from("player_ratings")
     .update({
       rating: general.playerA.ratingAfter,
       matches_count: rating1.matches_count + 1,
-      wins_count: rating1.wins_count + (winnerIsPlayer1 ? 1 : 0),
-      losses_count: rating1.losses_count + (winnerIsPlayer1 ? 0 : 1),
+      wins_count: rating1.wins_count + (winnerIsPlayer1 === true ? 1 : 0),
+      losses_count: rating1.losses_count + (winnerIsPlayer1 === false ? 1 : 0),
+      draws_count: draws1 + (isDraw ? 1 : 0),
       current_streak: streak1,
       best_rating: extremes1.bestRating,
       worst_rating: extremes1.worstRating,
@@ -249,8 +260,9 @@ export async function applyEloForValidatedMatch(pInput: {
     .update({
       rating: general.playerB.ratingAfter,
       matches_count: rating2.matches_count + 1,
-      wins_count: rating2.wins_count + (winnerIsPlayer1 ? 0 : 1),
-      losses_count: rating2.losses_count + (winnerIsPlayer1 ? 1 : 0),
+      wins_count: rating2.wins_count + (winnerIsPlayer1 === false ? 1 : 0),
+      losses_count: rating2.losses_count + (winnerIsPlayer1 === true ? 1 : 0),
+      draws_count: draws2 + (isDraw ? 1 : 0),
       current_streak: streak2,
       best_rating: extremes2.bestRating,
       worst_rating: extremes2.worstRating,
@@ -268,8 +280,9 @@ export async function applyEloForValidatedMatch(pInput: {
     .update({
       rating: playerHero.playerA.ratingAfter,
       matches_count: heroRating1.matches_count + 1,
-      wins_count: heroRating1.wins_count + (winnerIsPlayer1 ? 1 : 0),
-      losses_count: heroRating1.losses_count + (winnerIsPlayer1 ? 0 : 1),
+      wins_count: heroRating1.wins_count + (winnerIsPlayer1 === true ? 1 : 0),
+      losses_count: heroRating1.losses_count + (winnerIsPlayer1 === false ? 1 : 0),
+      draws_count: heroDraws1 + (isDraw ? 1 : 0),
       last_used_at: pInput.processedAt,
     })
     .eq("profile_id", pInput.proposal.player1Id)
@@ -285,8 +298,9 @@ export async function applyEloForValidatedMatch(pInput: {
     .update({
       rating: playerHero.playerB.ratingAfter,
       matches_count: heroRating2.matches_count + 1,
-      wins_count: heroRating2.wins_count + (winnerIsPlayer1 ? 0 : 1),
-      losses_count: heroRating2.losses_count + (winnerIsPlayer1 ? 1 : 0),
+      wins_count: heroRating2.wins_count + (winnerIsPlayer1 === false ? 1 : 0),
+      losses_count: heroRating2.losses_count + (winnerIsPlayer1 === true ? 1 : 0),
+      draws_count: heroDraws2 + (isDraw ? 1 : 0),
       last_used_at: pInput.processedAt,
     })
     .eq("profile_id", pInput.proposal.player2Id)

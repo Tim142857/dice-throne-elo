@@ -59,6 +59,22 @@ describe("applyTwoPlayerElo", () => {
     expect(result.playerB.ratingChange).toBeCloseTo(-result.playerA.ratingChange, 12);
   });
 
+  it("applies 0.5 actual score on draw (favorite loses rating)", () => {
+    const result = applyGeneralElo({
+      ratingA: 1200,
+      ratingB: 1000,
+      winnerIsA: null,
+    });
+
+    expect(result.playerA.actualScore).toBe(0.5);
+    expect(result.playerB.actualScore).toBe(0.5);
+    expect(result.playerA.expectedScore).toBeGreaterThan(0.5);
+    // K * (0.5 - expected) < 0 for the favorite
+    expect(result.playerA.ratingChange).toBeLessThan(0);
+    expect(result.playerB.ratingChange).toBeGreaterThan(0);
+    expect(result.playerB.ratingChange).toBeCloseTo(-result.playerA.ratingChange, 12);
+  });
+
   it("keeps exact opposite deltas before display rounding", () => {
     const result = applyTwoPlayerElo({
       ratingA: 1013.257891,

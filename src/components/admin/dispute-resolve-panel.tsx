@@ -9,7 +9,10 @@ import {
   resolveDisputeKeepProposalAction,
 } from "@/app/actions/admin-disputes";
 import type { ActionResult } from "@/lib/actions/result";
-import { formatMatchFinalHealthScore } from "@/domain/matches/final-health";
+import {
+  describeMatchOutcomeFromHealth,
+  formatMatchFinalHealthScore,
+} from "@/domain/matches/final-health";
 
 type HeroOption = { id: string; label: string };
 type ProposalOption = {
@@ -19,7 +22,7 @@ type ProposalOption = {
   playedAt: string;
   hero1Id: string;
   hero2Id: string;
-  winnerProfileId: string;
+  winnerProfileId: string | null;
   player1RemainingHealth: number;
   player2RemainingHealth: number;
   notes: string | null;
@@ -51,6 +54,17 @@ export function DisputeResolvePanel({
   const [message, setMessage] = useState("");
   const [isPending, startTransition] = useTransition();
   const current = proposals.find((pItem) => pItem.id === currentProposalId) ?? proposals[0];
+  const [player1Health, setPlayer1Health] = useState(current?.player1RemainingHealth ?? 15);
+  const [player2Health, setPlayer2Health] = useState(current?.player2RemainingHealth ?? 0);
+
+  const customOutcome = describeMatchOutcomeFromHealth({
+    player1Id,
+    player2Id,
+    player1Label: player1Pseudo,
+    player2Label: player2Pseudo,
+    player1RemainingHealth: player1Health,
+    player2RemainingHealth: player2Health,
+  });
 
   function runAction(
     pAction: (pFormData: FormData) => Promise<ActionResult>,
@@ -166,18 +180,6 @@ export function DisputeResolvePanel({
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span>Vainqueur</span>
-          <select
-            name="winnerProfileId"
-            required
-            defaultValue={current?.winnerProfileId}
-            className="min-h-11 rounded-md border border-zinc-300 px-3 py-2"
-          >
-            <option value={player1Id}>{player1Pseudo}</option>
-            <option value={player2Id}>{player2Pseudo}</option>
-          </select>
-        </label>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm">
             <span>PV restants — {player1Pseudo}</span>
@@ -187,7 +189,8 @@ export function DisputeResolvePanel({
               min={0}
               max={50}
               required
-              defaultValue={current?.player1RemainingHealth ?? 15}
+              value={player1Health}
+              onChange={(pEvent) => setPlayer1Health(Number(pEvent.target.value))}
               className="min-h-11 rounded-md border border-zinc-300 px-3 py-2"
             />
           </label>
@@ -199,11 +202,18 @@ export function DisputeResolvePanel({
               min={0}
               max={50}
               required
-              defaultValue={current?.player2RemainingHealth ?? 0}
+              value={player2Health}
+              onChange={(pEvent) => setPlayer2Health(Number(pEvent.target.value))}
               className="min-h-11 rounded-md border border-zinc-300 px-3 py-2"
             />
           </label>
         </div>
+        <p className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800">
+          Résultat calculé : <span className="font-medium">{customOutcome}</span>
+        </p>
+        <p className="text-xs text-zinc-500">
+          Déduit automatiquement des PV (égaux = nul, y compris 0-0).
+        </p>
         <label className="flex flex-col gap-1 text-sm">
           <span>Notes (optionnel)</span>
           <textarea

@@ -106,7 +106,7 @@ export type MatchProposalRow = {
   hero1Id: string;
   player2Id: string;
   hero2Id: string;
-  winnerProfileId: string;
+  winnerProfileId: string | null;
   winnerRemainingHealth: number;
   player1RemainingHealth: number;
   player2RemainingHealth: number;
@@ -134,6 +134,7 @@ export type PlayerRatingRow = {
   matchesCount: number;
   winsCount: number;
   lossesCount: number;
+  drawsCount: number;
   currentStreak: number;
   bestRating: string;
   worstRating: string | null;
@@ -149,6 +150,7 @@ export type PlayerHeroRatingRow = {
   matchesCount: number;
   winsCount: number;
   lossesCount: number;
+  drawsCount: number;
   lastUsedAt: string | null;
   updatedAt: string;
 };

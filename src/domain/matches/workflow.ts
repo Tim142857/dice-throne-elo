@@ -165,11 +165,11 @@ export type DuplicateMatchFingerprint = {
   player2Id: string;
   hero1Id: string;
   hero2Id: string;
-  winnerProfileId: string;
+  winnerProfileId: string | null;
 };
 
 /**
- * Probable duplicate: same date, players, heroes and winner.
+ * Probable duplicate: same date, players, heroes and winner (or draw).
  * Player order is normalized so A vs B equals B vs A with swapped heroes.
  */
 export function buildDuplicateFingerprint(pInput: DuplicateMatchFingerprint): string {
@@ -194,7 +194,7 @@ export function buildDuplicateFingerprint(pInput: DuplicateMatchFingerprint): st
     ordered.heroA,
     ordered.playerB,
     ordered.heroB,
-    pInput.winnerProfileId,
+    pInput.winnerProfileId ?? "__draw__",
   ].join("|");
 }
 

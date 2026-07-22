@@ -9,7 +9,7 @@ export type AchievementMatchFact = {
   player2Id: string;
   hero1Id: string;
   hero2Id: string;
-  winnerProfileId: string;
+  winnerProfileId: string | null;
   winnerRemainingHealth: number;
   /** Exact general Elo of player1 before this match (null if unknown). */
   player1EloBefore: number | null;
@@ -190,23 +190,25 @@ export function evaluateAchievementsForPlayer(
           underdogUnlockMatches.set("underdog_1000", match);
         }
       }
-
-      const after = eloAfter(match, pInput.profileId);
-      if (after !== null) {
-        maxEloAfter = Math.max(maxEloAfter, after);
-        if (after >= 1200 && !eloUnlockMatches.has("elo_1200")) {
-          eloUnlockMatches.set("elo_1200", match);
-        }
-        if (after >= 1500 && !eloUnlockMatches.has("elo_1500")) {
-          eloUnlockMatches.set("elo_1500", match);
-        }
-        if (after >= 2000 && !eloUnlockMatches.has("elo_2000")) {
-          eloUnlockMatches.set("elo_2000", match);
-        }
-      }
+    } else if (match.winnerProfileId === null) {
+      currentWinStreak = 0;
     } else {
       currentWinStreak = 0;
       currentLossStreak += 1;
+    }
+
+    const after = eloAfter(match, pInput.profileId);
+    if (after !== null) {
+      maxEloAfter = Math.max(maxEloAfter, after);
+      if (after >= 1200 && !eloUnlockMatches.has("elo_1200")) {
+        eloUnlockMatches.set("elo_1200", match);
+      }
+      if (after >= 1500 && !eloUnlockMatches.has("elo_1500")) {
+        eloUnlockMatches.set("elo_1500", match);
+      }
+      if (after >= 2000 && !eloUnlockMatches.has("elo_2000")) {
+        eloUnlockMatches.set("elo_2000", match);
+      }
     }
   }
 

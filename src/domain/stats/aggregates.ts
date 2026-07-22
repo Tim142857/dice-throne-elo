@@ -8,7 +8,7 @@ export type MatchFact = {
   player2Id: string;
   hero1Id: string;
   hero2Id: string;
-  winnerProfileId: string;
+  winnerProfileId: string | null;
   winnerRemainingHealth: number;
   achievementsEligible: boolean;
 };
@@ -42,7 +42,7 @@ export function aggregateHeroStats(pMatches: MatchFact[]): Map<string, HeroAggre
       winsCount: number;
       lossesCount: number;
       players: Set<string>;
-      vs: Map<string, { wins: number; losses: number }>;
+      vs: Map<string, { wins: number; losses: number; draws: number }>;
     }
   >();
 
@@ -56,7 +56,7 @@ export function aggregateHeroStats(pMatches: MatchFact[]): Map<string, HeroAggre
       winsCount: 0,
       lossesCount: 0,
       players: new Set<string>(),
-      vs: new Map<string, { wins: number; losses: number }>(),
+      vs: new Map<string, { wins: number; losses: number; draws: number }>(),
     };
     aggregates.set(pHeroId, created);
     return created;
@@ -71,7 +71,9 @@ export function aggregateHeroStats(pMatches: MatchFact[]): Map<string, HeroAggre
     hero2.players.add(match.player2Id);
 
     const hero1Won = match.winnerProfileId === match.player1Id;
-    if (hero1Won) {
+    if (match.winnerProfileId === null) {
+      // Draw: only match counts increase.
+    } else if (hero1Won) {
       hero1.winsCount += 1;
       hero2.lossesCount += 1;
     } else {
@@ -79,9 +81,12 @@ export function aggregateHeroStats(pMatches: MatchFact[]): Map<string, HeroAggre
       hero1.lossesCount += 1;
     }
 
-    const vs12 = hero1.vs.get(match.hero2Id) ?? { wins: 0, losses: 0 };
-    const vs21 = hero2.vs.get(match.hero1Id) ?? { wins: 0, losses: 0 };
-    if (hero1Won) {
+    const vs12 = hero1.vs.get(match.hero2Id) ?? { wins: 0, losses: 0, draws: 0 };
+    const vs21 = hero2.vs.get(match.hero1Id) ?? { wins: 0, losses: 0, draws: 0 };
+    if (match.winnerProfileId === null) {
+      vs12.draws += 1;
+      vs21.draws += 1;
+    } else if (hero1Won) {
       vs12.wins += 1;
       vs21.losses += 1;
     } else {
@@ -102,13 +107,16 @@ export function aggregateHeroStats(pMatches: MatchFact[]): Map<string, HeroAggre
       winRateLabel: formatWinRate(raw.winsCount, raw.matchesCount),
       distinctPlayers: raw.players.size,
       matchups: [...raw.vs.entries()]
-        .map(([opponentHeroId, record]) => ({
-          opponentHeroId,
-          wins: record.wins,
-          losses: record.losses,
-          matchesCount: record.wins + record.losses,
-          winRateLabel: formatWinRate(record.wins, record.wins + record.losses),
-        }))
+        .map(([opponentHeroId, record]) => {
+          const matchesCount = record.wins + record.losses + record.draws;
+          return {
+            opponentHeroId,
+            wins: record.wins,
+            losses: record.losses,
+            matchesCount,
+            winRateLabel: formatWinRate(record.wins, matchesCount),
+          };
+        })
         .sort((pLeft, pRight) => pRight.matchesCount - pLeft.matchesCount),
     });
   }
@@ -130,12 +138,13 @@ export function pickOpponentExtremes(
     opponentSlug: string;
     wins: number;
     losses: number;
+    matchesCount?: number;
   }>,
   pMinMatches: number,
 ): { nemesis: OpponentHeadToHead | null; favoriteOpponent: OpponentHeadToHead | null } {
   const enriched = pRecords
     .map((pRow) => {
-      const matchesCount = pRow.wins + pRow.losses;
+      const matchesCount = pRow.matchesCount ?? pRow.wins + pRow.losses;
       return {
         ...pRow,
         matchesCount,
@@ -249,7 +258,7 @@ export function aggregatePlayerConfrontation(
     heroesUsedByB.set(heroB, (heroesUsedByB.get(heroB) ?? 0) + 1);
     if (match.winnerProfileId === pPlayerAId) {
       winsA += 1;
-    } else {
+    } else if (match.winnerProfileId === pPlayerBId) {
       winsB += 1;
     }
   }
@@ -293,6 +302,9 @@ export function aggregateHeroConfrontation(
     players.add(match.player1Id);
     players.add(match.player2Id);
     const aIsHero1 = match.hero1Id === pHeroAId;
+    if (match.winnerProfileId === null) {
+      continue;
+    }
     const winnerIsPlayer1 = match.winnerProfileId === match.player1Id;
     const heroAWon = aIsHero1 ? winnerIsPlayer1 : !winnerIsPlayer1;
     if (heroAWon) {

@@ -134,7 +134,11 @@ export default async function HeroConfrontationPage({ searchParams }: PageProps)
                     <Link href={`/matchs#match-${pMatch.id}`} className="font-medium hover:underline">
                       {formatDate(pMatch.playedAt)} · {pMatch.player1Pseudo} vs {pMatch.player2Pseudo}
                     </Link>
-                    <p className="text-zinc-500">Vainqueur héros : {pMatch.winnerHeroName}</p>
+                    <p className="text-zinc-500">
+                      {pMatch.winnerHeroName
+                        ? `Vainqueur héros : ${pMatch.winnerHeroName}`
+                        : "Match nul"}
+                    </p>
                   </li>
                 ))}
               </ul>

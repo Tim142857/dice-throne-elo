@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
 import { createMatchAction } from "@/app/actions/matches";
+import { describeMatchOutcomeFromHealth } from "@/domain/matches/final-health";
 
 type Option = { id: string; label: string };
 
@@ -29,16 +30,27 @@ export function CreateMatchForm({
   const [isPending, startTransition] = useTransition();
   const [player1Id, setPlayer1Id] = useState(currentProfileId);
   const [player2Id, setPlayer2Id] = useState(opponents[0]?.id ?? "");
-  const [winnerProfileId, setWinnerProfileId] = useState(currentProfileId);
+  const [player1Health, setPlayer1Health] = useState(15);
+  const [player2Health, setPlayer2Health] = useState(0);
 
   const playerOptions = useMemo(
     () => [{ id: currentProfileId, label: `${currentPseudo} (vous)` }, ...opponents],
     [currentProfileId, currentPseudo, opponents],
   );
 
-  const winnerOptions = playerOptions.filter(
-    (pOption) => pOption.id === player1Id || pOption.id === player2Id,
-  );
+  const player1Label =
+    playerOptions.find((pOption) => pOption.id === player1Id)?.label ?? "Joueur 1";
+  const player2Label =
+    playerOptions.find((pOption) => pOption.id === player2Id)?.label ?? "Joueur 2";
+
+  const outcomeLabel = describeMatchOutcomeFromHealth({
+    player1Id,
+    player2Id,
+    player1Label,
+    player2Label,
+    player1RemainingHealth: player1Health,
+    player2RemainingHealth: player2Health,
+  });
 
   if (createdMatchId && duplicateIds.length > 0) {
     return (
@@ -119,12 +131,7 @@ export function CreateMatchForm({
             name="player1Id"
             required
             value={player1Id}
-            onChange={(pEvent) => {
-              setPlayer1Id(pEvent.target.value);
-              if (winnerProfileId !== pEvent.target.value && winnerProfileId !== player2Id) {
-                setWinnerProfileId(pEvent.target.value);
-              }
-            }}
+            onChange={(pEvent) => setPlayer1Id(pEvent.target.value)}
             className="rounded-md border border-zinc-300 px-3 py-2"
           >
             {playerOptions.map((pOption) => (
@@ -150,12 +157,7 @@ export function CreateMatchForm({
             name="player2Id"
             required
             value={player2Id}
-            onChange={(pEvent) => {
-              setPlayer2Id(pEvent.target.value);
-              if (winnerProfileId !== player1Id && winnerProfileId !== pEvent.target.value) {
-                setWinnerProfileId(pEvent.target.value);
-              }
-            }}
+            onChange={(pEvent) => setPlayer2Id(pEvent.target.value)}
             className="rounded-md border border-zinc-300 px-3 py-2"
           >
             {playerOptions.map((pOption) => (
@@ -177,23 +179,6 @@ export function CreateMatchForm({
         </label>
       </div>
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Vainqueur</span>
-        <select
-          name="winnerProfileId"
-          required
-          value={winnerProfileId}
-          onChange={(pEvent) => setWinnerProfileId(pEvent.target.value)}
-          className="rounded-md border border-zinc-300 px-3 py-2"
-        >
-          {winnerOptions.map((pOption) => (
-            <option key={pOption.id} value={pOption.id}>
-              {pOption.label}
-            </option>
-          ))}
-        </select>
-      </label>
-
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">PV restants — joueur 1</span>
@@ -203,7 +188,8 @@ export function CreateMatchForm({
             required
             min={0}
             max={50}
-            defaultValue={15}
+            value={player1Health}
+            onChange={(pEvent) => setPlayer1Health(Number(pEvent.target.value))}
             className="rounded-md border border-zinc-300 px-3 py-2"
           />
         </label>
@@ -215,13 +201,18 @@ export function CreateMatchForm({
             required
             min={0}
             max={50}
-            defaultValue={0}
+            value={player2Health}
+            onChange={(pEvent) => setPlayer2Health(Number(pEvent.target.value))}
             className="rounded-md border border-zinc-300 px-3 py-2"
           />
         </label>
       </div>
+      <p className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800">
+        Résultat calculé : <span className="font-medium">{outcomeLabel}</span>
+      </p>
       <p className="text-xs text-zinc-500">
-        KO : le perdant est à 0 PV. Fin du timer : indiquez les PV restants des deux joueurs.
+        Le vainqueur (ou le match nul) est déduit automatiquement des PV restants. PV égaux = nul,
+        y compris 0-0.
       </p>
 
       <label className="flex flex-col gap-1 text-sm">

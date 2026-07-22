@@ -33,13 +33,14 @@ export function formatWinRate(pWins: number, pMatches: number): string {
 }
 
 /**
- * Rebuild the best win streak from an ordered list of win/loss results.
+ * Rebuild the best win streak from an ordered list of results.
+ * `null` = draw (breaks the streak, like a loss).
  */
-export function computeBestWinStreak(pResultsChronological: boolean[]): number {
+export function computeBestWinStreak(pResultsChronological: Array<boolean | null>): number {
   let best = 0;
   let current = 0;
   for (const won of pResultsChronological) {
-    current = won ? current + 1 : 0;
+    current = won === true ? current + 1 : 0;
     best = Math.max(best, current);
   }
   return best;

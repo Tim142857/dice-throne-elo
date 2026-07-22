@@ -36,4 +36,8 @@ describe("computeBestWinStreak", () => {
   it("tracks the longest consecutive win run", () => {
     expect(computeBestWinStreak([true, true, false, true, true, true, false])).toBe(3);
   });
+
+  it("breaks the streak on draw", () => {
+    expect(computeBestWinStreak([true, true, null, true])).toBe(2);
+  });
 });

@@ -82,7 +82,6 @@ export async function resolveDisputeCustomAction(pFormData: FormData): Promise<A
         hero1Id: String(pFormData.get("hero1Id") || ""),
         player2Id: String(pFormData.get("player2Id") || ""),
         hero2Id: String(pFormData.get("hero2Id") || ""),
-        winnerProfileId: String(pFormData.get("winnerProfileId") || ""),
         player1RemainingHealth: pFormData.get("player1RemainingHealth"),
         player2RemainingHealth: pFormData.get("player2RemainingHealth"),
         notes: String(pFormData.get("notes") || "") || undefined,

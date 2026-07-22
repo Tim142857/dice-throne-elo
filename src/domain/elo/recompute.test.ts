@@ -67,7 +67,32 @@ describe("recomputeRatingsFromMatches", () => {
     expect(rating2?.rating).toBeCloseTo(984, 10);
     expect(rating1?.winsCount).toBe(1);
     expect(rating2?.lossesCount).toBe(1);
+    expect(rating1?.drawsCount).toBe(0);
     expect(result.events).toHaveLength(4);
+  });
+
+  it("counts draws without awarding a win or loss", () => {
+    const result = recomputeRatingsFromMatches([
+      {
+        matchId: "m1",
+        validatedAt: "2024-01-01T12:00:00.000Z",
+        player1Id: player1,
+        player2Id: player2,
+        hero1Id: heroA,
+        hero2Id: heroB,
+        winnerProfileId: null,
+      },
+    ]);
+
+    const rating1 = result.playerRatings.find((pRow) => pRow.profileId === player1);
+    const rating2 = result.playerRatings.find((pRow) => pRow.profileId === player2);
+    expect(rating1?.matchesCount).toBe(1);
+    expect(rating1?.winsCount).toBe(0);
+    expect(rating1?.lossesCount).toBe(0);
+    expect(rating1?.drawsCount).toBe(1);
+    expect(rating1?.currentStreak).toBe(0);
+    expect(rating2?.drawsCount).toBe(1);
+    expect(result.events.every((pEvent) => pEvent.actualScore === 0.5)).toBe(true);
   });
 
   it("is deterministic for the same input set", () => {

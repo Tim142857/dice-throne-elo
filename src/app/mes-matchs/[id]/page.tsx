@@ -98,11 +98,13 @@ export default async function MyMatchDetailPage({ params }: MatchDetailPageProps
           </dd>
         </div>
         <div>
-          <dt className="text-zinc-500">Vainqueur</dt>
+          <dt className="text-zinc-500">Issue</dt>
           <dd className="font-medium">
-            {details.proposal.winnerProfileId === details.player1.id
-              ? details.player1.pseudo
-              : details.player2.pseudo}
+            {details.proposal.winnerProfileId === null
+              ? "Match nul"
+              : details.proposal.winnerProfileId === details.player1.id
+                ? `Victoire — ${details.player1.pseudo}`
+                : `Victoire — ${details.player2.pseudo}`}
           </dd>
         </div>
         <div>

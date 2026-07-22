@@ -1,11 +1,12 @@
 import { PLAYER_ELO, PLAYER_HERO_ELO } from "@/domain/constants";
 
-export type BinaryScore = 0 | 1;
+/** Elo actual score: win / draw / loss. */
+export type ActualScore = 0 | 0.5 | 1;
 
 export type EloParticipantResult = {
   ratingBefore: number;
   expectedScore: number;
-  actualScore: BinaryScore;
+  actualScore: ActualScore;
   ratingChange: number;
   ratingAfter: number;
 };
@@ -24,16 +25,19 @@ export function computeExpectedScore(pRatingA: number, pRatingB: number): number
 
 /**
  * Apply a finished 1v1 match to two ratings.
+ * `winnerIsA === null` means draw (actual score 0.5 for both).
  * Player B's rating change is exactly the opposite of player A's (before display rounding).
  */
 export function applyTwoPlayerElo(pInput: {
   ratingA: number;
   ratingB: number;
-  winnerIsA: boolean;
+  winnerIsA: boolean | null;
   kFactor: number;
 }): TwoPlayerEloResult {
-  const actualScoreA: BinaryScore = pInput.winnerIsA ? 1 : 0;
-  const actualScoreB: BinaryScore = pInput.winnerIsA ? 0 : 1;
+  const actualScoreA: ActualScore =
+    pInput.winnerIsA === null ? 0.5 : pInput.winnerIsA ? 1 : 0;
+  const actualScoreB: ActualScore =
+    pInput.winnerIsA === null ? 0.5 : pInput.winnerIsA ? 0 : 1;
   const expectedScoreA = computeExpectedScore(pInput.ratingA, pInput.ratingB);
   const expectedScoreB = 1 - expectedScoreA;
   const ratingChangeA = pInput.kFactor * (actualScoreA - expectedScoreA);
@@ -60,7 +64,7 @@ export function applyTwoPlayerElo(pInput: {
 export function applyGeneralElo(pInput: {
   ratingA: number;
   ratingB: number;
-  winnerIsA: boolean;
+  winnerIsA: boolean | null;
 }): TwoPlayerEloResult {
   return applyTwoPlayerElo({
     ...pInput,
@@ -71,7 +75,7 @@ export function applyGeneralElo(pInput: {
 export function applyPlayerHeroElo(pInput: {
   ratingA: number;
   ratingB: number;
-  winnerIsA: boolean;
+  winnerIsA: boolean | null;
 }): TwoPlayerEloResult {
   return applyTwoPlayerElo({
     ...pInput,
@@ -102,7 +106,7 @@ export function formatEloDeltaDisplay(pDelta: number): string {
 }
 
 /**
- * Current win streak: increments on win, resets to 0 on loss.
+ * Current win streak: increments on win, resets on loss or draw.
  */
 export function nextWinStreak(pCurrentWinStreak: number, pWon: boolean): number {
   if (pCurrentWinStreak < 0) {

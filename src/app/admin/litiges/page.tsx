@@ -50,13 +50,15 @@ export default async function AdminDisputesPage() {
         item: pItem,
         proposals: proposals.map((pProposal) => {
           const winnerPseudo =
-            pProposal.winnerProfileId === pItem.player1.id
-              ? pItem.player1.pseudo
-              : pItem.player2.pseudo;
+            pProposal.winnerProfileId === null
+              ? null
+              : pProposal.winnerProfileId === pItem.player1.id
+                ? pItem.player1.pseudo
+                : pItem.player2.pseudo;
           return {
             id: pProposal.id,
             versionNumber: pProposal.versionNumber,
-            label: `${heroNameById.get(pProposal.hero1Id) ?? "?"} vs ${heroNameById.get(pProposal.hero2Id) ?? "?"} · ${formatMatchFinalHealthScore(pProposal.player1RemainingHealth, pProposal.player2RemainingHealth)} · gagnant ${winnerPseudo}`,
+            label: `${heroNameById.get(pProposal.hero1Id) ?? "?"} vs ${heroNameById.get(pProposal.hero2Id) ?? "?"} · ${formatMatchFinalHealthScore(pProposal.player1RemainingHealth, pProposal.player2RemainingHealth)} · ${winnerPseudo ? `gagnant ${winnerPseudo}` : "match nul"}`,
             playedAt: pProposal.playedAt,
             hero1Id: pProposal.hero1Id,
             hero2Id: pProposal.hero2Id,

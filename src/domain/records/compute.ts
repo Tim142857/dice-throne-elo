@@ -6,7 +6,7 @@ export type RecordMatchFact = {
   player2Id: string;
   hero1Id: string;
   hero2Id: string;
-  winnerProfileId: string;
+  winnerProfileId: string | null;
   /** Winner remaining HP — required for PV records. */
   winnerRemainingHealth: number | null;
   /** True when PV data is reliable enough for PV records. */
@@ -173,22 +173,66 @@ export function computeRecords(pMatches: RecordMatchFact[]): ComputedRecord[] {
     rivalryCounts.set(key, rivalry);
 
     const winnerId = match.winnerProfileId;
-    const loserId = winnerId === match.player1Id ? match.player2Id : match.player1Id;
-    winCounts.set(winnerId, (winCounts.get(winnerId) ?? 0) + 1);
-    const beaten = opponentsBeaten.get(winnerId) ?? new Set<string>();
-    beaten.add(loserId);
-    opponentsBeaten.set(winnerId, beaten);
+    if (winnerId) {
+      const loserId = winnerId === match.player1Id ? match.player2Id : match.player1Id;
+      winCounts.set(winnerId, (winCounts.get(winnerId) ?? 0) + 1);
+      const beaten = opponentsBeaten.get(winnerId) ?? new Set<string>();
+      beaten.add(loserId);
+      opponentsBeaten.set(winnerId, beaten);
 
-    const streak = (winStreak.get(winnerId) ?? 0) + 1;
-    winStreak.set(winnerId, streak);
-    winStreak.set(loserId, 0);
-    const best = bestWinStreak.get(winnerId);
-    if (!best || streak > best.value) {
-      bestWinStreak.set(winnerId, {
-        value: streak,
-        matchId: match.matchId,
-        at: match.validatedAt,
-      });
+      const streak = (winStreak.get(winnerId) ?? 0) + 1;
+      winStreak.set(winnerId, streak);
+      winStreak.set(loserId, 0);
+      const best = bestWinStreak.get(winnerId);
+      if (!best || streak > best.value) {
+        bestWinStreak.set(winnerId, {
+          value: streak,
+          matchId: match.matchId,
+          at: match.validatedAt,
+        });
+      }
+
+      if (match.pvReliable && match.winnerRemainingHealth !== null) {
+        pushMaxHolders(
+          holders,
+          "closest_win",
+          {
+            profileId: winnerId,
+            relatedProfileIds: [winnerId],
+            value: match.winnerRemainingHealth,
+            relatedMatchId: match.matchId,
+            establishedAt: match.validatedAt,
+          },
+          true,
+        );
+        pushMaxHolders(holders, "largest_win", {
+          profileId: winnerId,
+          relatedProfileIds: [winnerId],
+          value: match.winnerRemainingHealth,
+          relatedMatchId: match.matchId,
+          establishedAt: match.validatedAt,
+        });
+      }
+
+      const winnerBefore =
+        winnerId === match.player1Id ? match.player1EloBefore : match.player2EloBefore;
+      const loserBefore =
+        winnerId === match.player1Id ? match.player2EloBefore : match.player1EloBefore;
+      if (winnerBefore !== null && loserBefore !== null) {
+        const deficit = loserBefore - winnerBefore;
+        if (deficit > 0) {
+          pushMaxHolders(holders, "biggest_upset", {
+            profileId: winnerId,
+            relatedProfileIds: [winnerId],
+            value: deficit,
+            relatedMatchId: match.matchId,
+            establishedAt: match.validatedAt,
+          });
+        }
+      }
+    } else {
+      winStreak.set(match.player1Id, 0);
+      winStreak.set(match.player2Id, 0);
     }
 
     for (const [profileId, after] of [
@@ -209,45 +253,6 @@ export function computeRecords(pMatches: RecordMatchFact[]): ComputedRecord[] {
       const series = eloSeries.get(profileId) ?? [];
       series.push({ after, matchId: match.matchId, at: match.validatedAt });
       eloSeries.set(profileId, series);
-    }
-
-    if (match.pvReliable && match.winnerRemainingHealth !== null) {
-      pushMaxHolders(
-        holders,
-        "closest_win",
-        {
-          profileId: winnerId,
-          relatedProfileIds: [winnerId],
-          value: match.winnerRemainingHealth,
-          relatedMatchId: match.matchId,
-          establishedAt: match.validatedAt,
-        },
-        true,
-      );
-      pushMaxHolders(holders, "largest_win", {
-        profileId: winnerId,
-        relatedProfileIds: [winnerId],
-        value: match.winnerRemainingHealth,
-        relatedMatchId: match.matchId,
-        establishedAt: match.validatedAt,
-      });
-    }
-
-    const winnerBefore =
-      winnerId === match.player1Id ? match.player1EloBefore : match.player2EloBefore;
-    const loserBefore =
-      winnerId === match.player1Id ? match.player2EloBefore : match.player1EloBefore;
-    if (winnerBefore !== null && loserBefore !== null) {
-      const deficit = loserBefore - winnerBefore;
-      if (deficit > 0) {
-        pushMaxHolders(holders, "biggest_upset", {
-          profileId: winnerId,
-          relatedProfileIds: [winnerId],
-          value: deficit,
-          relatedMatchId: match.matchId,
-          establishedAt: match.validatedAt,
-        });
-      }
     }
 
     for (const [profileId, change] of [

@@ -89,6 +89,48 @@ describe("parseHistoricalMatchRow", () => {
     }
   });
 
+  it("accepts a draw row", () => {
+    const parsed = parseHistoricalMatchRow({
+      rowNumber: 3,
+      playedAt: "2024-01-02",
+      player1: "Tim",
+      hero1: "Gambit",
+      player2: "Ewenn",
+      hero2: "Thor",
+      winner: "nul",
+      winnerRemainingHealth: "8",
+      player2RemainingHealth: "8",
+      notes: "",
+    });
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) {
+      expect(parsed.row.winnerPseudo).toBeNull();
+      expect(parsed.row.player1RemainingHealth).toBe(8);
+      expect(parsed.row.player2RemainingHealth).toBe(8);
+    }
+  });
+
+  it("accepts a 0-0 draw", () => {
+    const parsed = parseHistoricalMatchRow({
+      rowNumber: 4,
+      playedAt: "2024-01-03",
+      player1: "Tim",
+      hero1: "Gambit",
+      player2: "Ewenn",
+      hero2: "Thor",
+      winner: "nul",
+      winnerRemainingHealth: "0",
+      player2RemainingHealth: "0",
+      notes: "",
+    });
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) {
+      expect(parsed.row.winnerPseudo).toBeNull();
+      expect(parsed.row.player1RemainingHealth).toBe(0);
+      expect(parsed.row.player2RemainingHealth).toBe(0);
+    }
+  });
+
   it("rejects an invalid winner", () => {
     const parsed = parseHistoricalMatchRow({
       rowNumber: 3,

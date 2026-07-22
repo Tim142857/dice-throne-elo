@@ -29,7 +29,7 @@ export type MatchProposalDbRow = {
   hero1_id: string;
   player2_id: string;
   hero2_id: string;
-  winner_profile_id: string;
+  winner_profile_id: string | null;
   winner_remaining_health: number;
   player1_remaining_health: number;
   player2_remaining_health: number;

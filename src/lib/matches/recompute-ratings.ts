@@ -192,7 +192,7 @@ export async function verifyRatingsConsistency(): Promise<ConsistencyReport> {
   const [ratingsResponse, heroRatingsResponse, eventsResponse] = await Promise.all([
     admin
       .from("player_ratings")
-      .select("profile_id, rating, matches_count, wins_count, losses_count, current_streak")
+      .select("profile_id, rating, matches_count, wins_count, losses_count, draws_count, current_streak")
       .eq("season_id", SEED_IDS.globalSeasonId)
       .order("profile_id", { ascending: true }),
     admin
@@ -223,11 +223,12 @@ export async function verifyRatingsConsistency(): Promise<ConsistencyReport> {
     matches_count: number;
     wins_count: number;
     losses_count: number;
+    draws_count?: number;
     current_streak: number;
   }>)
     .map(
       (pRow) =>
-        `${pRow.profile_id}:${Number(pRow.rating).toFixed(6)}:${pRow.matches_count}:${pRow.wins_count}:${pRow.losses_count}:${pRow.current_streak}`,
+        `${pRow.profile_id}:${Number(pRow.rating).toFixed(6)}:${pRow.matches_count}:${pRow.wins_count}:${pRow.losses_count}:${pRow.draws_count ?? 0}:${pRow.current_streak}`,
     )
     .join("|");
 

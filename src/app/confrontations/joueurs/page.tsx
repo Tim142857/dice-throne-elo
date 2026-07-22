@@ -172,8 +172,10 @@ export default async function PlayerConfrontationPage({ searchParams }: PageProp
                 {view.recentMatches.map((pMatch) => (
                   <li key={pMatch.id} className="py-2">
                     <Link href={`/matchs#match-${pMatch.id}`} className="font-medium hover:underline">
-                      {formatDate(pMatch.playedAt)} · vainqueur {pMatch.winnerPseudo} (
-                      {pMatch.winnerRemainingHealth} PV)
+                      {formatDate(pMatch.playedAt)} ·{" "}
+                      {pMatch.winnerPseudo
+                        ? `vainqueur ${pMatch.winnerPseudo} (${pMatch.winnerRemainingHealth} PV)`
+                        : `match nul (${pMatch.winnerRemainingHealth} PV)`}
                     </Link>
                     <p className="text-zinc-500">
                       {pMatch.heroAName} vs {pMatch.heroBName}

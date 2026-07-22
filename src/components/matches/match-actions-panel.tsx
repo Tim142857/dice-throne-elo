@@ -11,6 +11,7 @@ import {
   rejectMatchAction,
   validateMatchAction,
 } from "@/app/actions/matches";
+import { describeMatchOutcomeFromHealth } from "@/domain/matches/final-health";
 import type { ActionResult } from "@/lib/actions/result";
 
 type HeroOption = { id: string; label: string };
@@ -26,7 +27,7 @@ type MatchActionsPanelProps = {
     player2Id: string;
     hero1Id: string;
     hero2Id: string;
-    winnerProfileId: string;
+    winnerProfileId: string | null;
     player1RemainingHealth: number;
     player2RemainingHealth: number;
     notes: string | null;
@@ -51,6 +52,17 @@ export function MatchActionsPanel({
   const [message, setMessage] = useState("");
   const [isPending, startTransition] = useTransition();
   const [showCorrection, setShowCorrection] = useState(false);
+  const [player1Health, setPlayer1Health] = useState(proposal.player1RemainingHealth);
+  const [player2Health, setPlayer2Health] = useState(proposal.player2RemainingHealth);
+
+  const correctionOutcome = describeMatchOutcomeFromHealth({
+    player1Id: proposal.player1Id,
+    player2Id: proposal.player2Id,
+    player1Label: player1Pseudo,
+    player2Label: player2Pseudo,
+    player1RemainingHealth: player1Health,
+    player2RemainingHealth: player2Health,
+  });
 
   function runAction(
     pAction: (pFormData: FormData) => Promise<ActionResult>,
@@ -177,18 +189,6 @@ export function MatchActionsPanel({
                   ))}
                 </select>
               </label>
-              <label className="flex flex-col gap-1 text-sm">
-                <span>Vainqueur</span>
-                <select
-                  name="winnerProfileId"
-                  required
-                  defaultValue={proposal.winnerProfileId}
-                  className="rounded-md border border-zinc-300 px-3 py-2"
-                >
-                  <option value={proposal.player1Id}>{player1Pseudo}</option>
-                  <option value={proposal.player2Id}>{player2Pseudo}</option>
-                </select>
-              </label>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="flex flex-col gap-1 text-sm">
                   <span>PV restants — {player1Pseudo}</span>
@@ -198,7 +198,8 @@ export function MatchActionsPanel({
                     min={0}
                     max={50}
                     required
-                    defaultValue={proposal.player1RemainingHealth}
+                    value={player1Health}
+                    onChange={(pEvent) => setPlayer1Health(Number(pEvent.target.value))}
                     className="rounded-md border border-zinc-300 px-3 py-2"
                   />
                 </label>
@@ -210,11 +211,18 @@ export function MatchActionsPanel({
                     min={0}
                     max={50}
                     required
-                    defaultValue={proposal.player2RemainingHealth}
+                    value={player2Health}
+                    onChange={(pEvent) => setPlayer2Health(Number(pEvent.target.value))}
                     className="rounded-md border border-zinc-300 px-3 py-2"
                   />
                 </label>
               </div>
+              <p className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800">
+                Résultat calculé : <span className="font-medium">{correctionOutcome}</span>
+              </p>
+              <p className="text-xs text-zinc-500">
+                Déduit automatiquement des PV (égaux = nul, y compris 0-0).
+              </p>
               <label className="flex flex-col gap-1 text-sm">
                 <span>Notes (optionnel)</span>
                 <textarea

@@ -141,8 +141,16 @@ export default async function HeroDetailPage({ params, searchParams }: HeroDetai
                     {formatDate(pMatch.playedAt)} · vs {pMatch.opponentHeroName}
                   </p>
                 </div>
-                <span className={pMatch.won ? "text-elo-gain" : "text-elo-loss"}>
-                  {pMatch.won ? "Victoire" : "Défaite"}
+                <span
+                  className={
+                    pMatch.won === null
+                      ? "text-zinc-600"
+                      : pMatch.won
+                        ? "text-elo-gain"
+                        : "text-elo-loss"
+                  }
+                >
+                  {pMatch.won === null ? "Nul" : pMatch.won ? "Victoire" : "Défaite"}
                 </span>
               </li>
             ))}
