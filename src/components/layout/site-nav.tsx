@@ -77,11 +77,13 @@ function NavDropdown({ label, children, align = "left" }: NavDropdownProps) {
         <div
           id={menuId}
           role="menu"
-          className={`absolute top-full z-50 mt-1 min-w-52 rounded-xl border border-violet-200 bg-white p-1.5 shadow-lg shadow-violet-900/10 ${
+          className={`absolute top-full z-50 min-w-52 pt-1 ${
             align === "right" ? "right-0" : "left-0"
           }`}
         >
-          {children}
+          <div className="rounded-xl border border-violet-200 bg-white p-1.5 shadow-lg shadow-violet-900/10">
+            {children}
+          </div>
         </div>
       ) : null}
     </div>
