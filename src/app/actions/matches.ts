@@ -49,20 +49,40 @@ function readProposalFields(pFormData: FormData) {
 
 export async function createMatchAction(
   pFormData: FormData,
-): Promise<ActionResult<{ matchId: string; probableDuplicateIds: string[] }>> {
+): Promise<
+  ActionResult<
+    | { status: "created"; matchId: string; probableDuplicateIds: string[] }
+    | { status: "needs_confirmation"; opponentDuplicateIds: string[] }
+  >
+> {
   const actor = await requireActiveActor();
   if (!actor.ok) {
     return actionError(actor.error);
   }
 
   try {
+    const acknowledgeDuplicates =
+      String(pFormData.get("acknowledgeDuplicates") || "") === "true";
     const result = await createMatch({
       actor: actor.profile,
       fields: readProposalFields(pFormData),
+      acknowledgeDuplicates,
     });
+
+    if (result.status === "needs_confirmation") {
+      return actionSuccess(
+        {
+          status: "needs_confirmation",
+          opponentDuplicateIds: result.opponentDuplicateIds,
+        },
+        "L’adversaire a déjà déclaré un match identique. Confirmez si vous voulez quand même déclarer le vôtre.",
+      );
+    }
+
     revalidateMatchPaths(result.match.id);
     return actionSuccess(
       {
+        status: "created",
         matchId: result.match.id,
         probableDuplicateIds: result.probableDuplicateIds,
       },

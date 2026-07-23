@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 
 import { createMatchAction } from "@/app/actions/matches";
 import { describeMatchOutcomeFromHealth } from "@/domain/matches/final-health";
@@ -27,7 +27,9 @@ export function CreateMatchForm({
   const [message, setMessage] = useState("");
   const [createdMatchId, setCreatedMatchId] = useState<string | null>(null);
   const [duplicateIds, setDuplicateIds] = useState<string[]>([]);
+  const [opponentDuplicateIds, setOpponentDuplicateIds] = useState<string[]>([]);
   const [isPending, startTransition] = useTransition();
+  const submitLockRef = useRef(false);
   const [player1Id, setPlayer1Id] = useState(currentProfileId);
   const [player2Id, setPlayer2Id] = useState(opponents[0]?.id ?? "");
   const [player1Health, setPlayer1Health] = useState(15);
@@ -51,6 +53,47 @@ export function CreateMatchForm({
     player1RemainingHealth: player1Health,
     player2RemainingHealth: player2Health,
   });
+
+  function submitDeclaration(pForm: HTMLFormElement, pAcknowledgeDuplicates: boolean) {
+    if (submitLockRef.current || isPending) {
+      return;
+    }
+    submitLockRef.current = true;
+    const formData = new FormData(pForm);
+    if (pAcknowledgeDuplicates) {
+      formData.set("acknowledgeDuplicates", "true");
+    }
+    startTransition(async () => {
+      setError("");
+      setMessage("");
+      try {
+        const result = await createMatchAction(formData);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        if (result.data.status === "needs_confirmation") {
+          setOpponentDuplicateIds(result.data.opponentDuplicateIds);
+          setMessage(
+            result.message ??
+              "L’adversaire a déjà déclaré un match identique. Confirmez pour continuer.",
+          );
+          return;
+        }
+        setOpponentDuplicateIds([]);
+        setMessage(result.message ?? "Match déclaré.");
+        if (result.data.probableDuplicateIds.length > 0) {
+          setCreatedMatchId(result.data.matchId);
+          setDuplicateIds(result.data.probableDuplicateIds);
+          return;
+        }
+        router.push(`/mes-matchs/${result.data.matchId}`);
+        router.refresh();
+      } finally {
+        submitLockRef.current = false;
+      }
+    });
+  }
 
   if (createdMatchId && duplicateIds.length > 0) {
     return (
@@ -91,25 +134,7 @@ export function CreateMatchForm({
       className="flex flex-col gap-4"
       onSubmit={(pEvent) => {
         pEvent.preventDefault();
-        const formData = new FormData(pEvent.currentTarget);
-        startTransition(async () => {
-          setError("");
-          setMessage("");
-          setDuplicateIds([]);
-          const result = await createMatchAction(formData);
-          if (!result.ok) {
-            setError(result.error);
-            return;
-          }
-          setMessage(result.message ?? "Match déclaré.");
-          if (result.data.probableDuplicateIds.length > 0) {
-            setCreatedMatchId(result.data.matchId);
-            setDuplicateIds(result.data.probableDuplicateIds);
-            return;
-          }
-          router.push(`/mes-matchs/${result.data.matchId}`);
-          router.refresh();
-        });
+        submitDeclaration(pEvent.currentTarget, false);
       }}
     >
       <label className="flex flex-col gap-1 text-sm">
@@ -225,12 +250,74 @@ export function CreateMatchForm({
         />
       </label>
 
+      {opponentDuplicateIds.length > 0 ? (
+        <div
+          className="rounded-md border border-amber-300 bg-amber-50 px-3 py-3 text-sm text-amber-950"
+          role="status"
+        >
+          <p className="font-medium">
+            Attention : l’adversaire a déjà déclaré un match avec la même date, les mêmes joueurs et
+            les mêmes héros.
+          </p>
+          <p className="mt-1">
+            Vérifiez qu’il ne s’agit pas du même affrontement avant de confirmer. En cas de doute,
+            ouvrez sa déclaration et validez-la plutôt que d’en créer une seconde.
+          </p>
+          <ul className="mt-2 flex flex-col gap-1">
+            {opponentDuplicateIds.map((pId) => (
+              <li key={pId}>
+                <Link href={`/mes-matchs/${pId}`} className="font-medium underline hover:text-zinc-950">
+                  Voir le match déjà déclaré ({pId.slice(0, 8)}…)
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={isPending}
+              className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60"
+              onClick={(pEvent) => {
+                const form = pEvent.currentTarget.form;
+                if (form) {
+                  submitDeclaration(form, true);
+                }
+              }}
+            >
+              {isPending ? "Déclaration…" : "Confirmer ma déclaration quand même"}
+            </button>
+            <button
+              type="button"
+              className="rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50"
+              onClick={() => {
+                setOpponentDuplicateIds([]);
+                setMessage("");
+              }}
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {error ? (
         <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
-          {error}
+          {error.includes("/mes-matchs/") ? (
+            <>
+              {error.split("/mes-matchs/")[0]}
+              <Link
+                href={`/mes-matchs/${error.split("/mes-matchs/")[1]}`}
+                className="font-medium underline"
+              >
+                ouvrir le match existant
+              </Link>
+            </>
+          ) : (
+            error
+          )}
         </p>
       ) : null}
-      {message ? (
+      {message && opponentDuplicateIds.length === 0 ? (
         <p
           className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
           role="status"
@@ -239,13 +326,15 @@ export function CreateMatchForm({
         </p>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={isPending || heroes.length === 0 || opponents.length === 0}
-        className="rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60"
-      >
-        {isPending ? "Déclaration…" : "Déclarer le match"}
-      </button>
+      {opponentDuplicateIds.length === 0 ? (
+        <button
+          type="submit"
+          disabled={isPending || heroes.length === 0 || opponents.length === 0}
+          className="rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60"
+        >
+          {isPending ? "Déclaration…" : "Déclarer le match"}
+        </button>
+      ) : null}
     </form>
   );
 }

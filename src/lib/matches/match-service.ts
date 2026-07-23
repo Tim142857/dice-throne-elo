@@ -2,6 +2,7 @@ import { isAchievementsEligibleByPlayedAt } from "@/domain/achievements/eligibil
 import {
   assertTransitionAllowed,
   buildDuplicateFingerprint,
+  buildMatchIdentityFingerprint,
   getOpponentProfileId,
   resolveActorRole,
 } from "@/domain/matches/workflow";
@@ -142,23 +143,31 @@ async function insertProposal(pInput: {
   return mapMatchProposalRow(data as MatchProposalDbRow);
 }
 
-export async function findProbableDuplicateMatchIds(
-  pFields: MatchProposalFields,
+export type MatchIdentityDuplicate = {
+  matchId: string;
+  createdByProfileId: string;
+  status: string;
+};
+
+export async function findIdentityDuplicateMatches(
+  pFields: Pick<
+    MatchProposalFields,
+    "playedAt" | "player1Id" | "player2Id" | "hero1Id" | "hero2Id"
+  >,
   pExcludeMatchId?: string,
-): Promise<string[]> {
+): Promise<MatchIdentityDuplicate[]> {
   const admin = createSupabaseAdminClient();
-  const fingerprint = buildDuplicateFingerprint({
+  const fingerprint = buildMatchIdentityFingerprint({
     playedAt: pFields.playedAt,
     player1Id: pFields.player1Id,
     player2Id: pFields.player2Id,
     hero1Id: pFields.hero1Id,
     hero2Id: pFields.hero2Id,
-    winnerProfileId: pFields.winnerProfileId,
   });
 
   const { data, error } = await admin
     .from("matches")
-    .select("id, current_proposal_id, status")
+    .select("id, current_proposal_id, status, created_by_profile_id")
     .eq("played_at", pFields.playedAt)
     .in("status", ["pendingOpponent", "pendingCreatorConfirmation", "validated", "disputed"]);
 
@@ -166,7 +175,7 @@ export async function findProbableDuplicateMatchIds(
     throw new Error(error.message);
   }
 
-  const duplicates: string[] = [];
+  const duplicates: MatchIdentityDuplicate[] = [];
   for (const row of data ?? []) {
     if (pExcludeMatchId && row.id === pExcludeMatchId) {
       continue;
@@ -175,25 +184,50 @@ export async function findProbableDuplicateMatchIds(
       continue;
     }
     const proposal = await loadProposal(row.current_proposal_id as string);
-    const otherFingerprint = buildDuplicateFingerprint({
+    const otherFingerprint = buildMatchIdentityFingerprint({
       playedAt: proposal.playedAt,
       player1Id: proposal.player1Id,
       player2Id: proposal.player2Id,
       hero1Id: proposal.hero1Id,
       hero2Id: proposal.hero2Id,
-      winnerProfileId: proposal.winnerProfileId,
     });
     if (otherFingerprint === fingerprint) {
-      duplicates.push(row.id as string);
+      duplicates.push({
+        matchId: row.id as string,
+        createdByProfileId: row.created_by_profile_id as string,
+        status: row.status as string,
+      });
     }
   }
   return duplicates;
 }
 
+/** @deprecated Prefer findIdentityDuplicateMatches (score-agnostic). */
+export async function findProbableDuplicateMatchIds(
+  pFields: MatchProposalFields,
+  pExcludeMatchId?: string,
+): Promise<string[]> {
+  const duplicates = await findIdentityDuplicateMatches(pFields, pExcludeMatchId);
+  return duplicates.map((pItem) => pItem.matchId);
+}
+
+export type CreateMatchResult =
+  | {
+      status: "created";
+      match: MatchRow;
+      proposal: MatchProposalRow;
+      probableDuplicateIds: string[];
+    }
+  | {
+      status: "needs_confirmation";
+      opponentDuplicateIds: string[];
+    };
+
 export async function createMatch(pInput: {
   actor: ProfileRow;
   fields: unknown;
-}): Promise<{ match: MatchRow; proposal: MatchProposalRow; probableDuplicateIds: string[] }> {
+  acknowledgeDuplicates?: boolean;
+}): Promise<CreateMatchResult> {
   const actor = requireActivePlayer(pInput.actor);
   const parsed = createMatchSchema.safeParse(pInput.fields);
   if (!parsed.success) {
@@ -208,7 +242,27 @@ export async function createMatch(pInput: {
   await loadProfile(parsed.data.player1Id);
   await loadProfile(parsed.data.player2Id);
 
-  const probableDuplicateIds = await findProbableDuplicateMatchIds(parsed.data);
+  const identityDuplicates = await findIdentityDuplicateMatches(parsed.data);
+  const ownDuplicates = identityDuplicates.filter(
+    (pItem) => pItem.createdByProfileId === actor.id,
+  );
+  const opponentDuplicates = identityDuplicates.filter(
+    (pItem) => pItem.createdByProfileId !== actor.id,
+  );
+
+  if (ownDuplicates.length > 0) {
+    throw new Error(
+      `Vous avez déjà déclaré ce match (même date, joueurs et héros). Ouvrez-le plutôt : /mes-matchs/${ownDuplicates[0]!.matchId}`,
+    );
+  }
+
+  if (opponentDuplicates.length > 0 && !pInput.acknowledgeDuplicates) {
+    return {
+      status: "needs_confirmation",
+      opponentDuplicateIds: opponentDuplicates.map((pItem) => pItem.matchId),
+    };
+  }
+
   const admin = createSupabaseAdminClient();
 
   const { data: matchData, error: matchError } = await admin
@@ -246,6 +300,32 @@ export async function createMatch(pInput: {
     throw new Error(linkError.message);
   }
 
+  // Race guard once the proposal is linked (identity fingerprint is complete).
+  const duplicatesAfterInsert = await findIdentityDuplicateMatches(parsed.data, match.id);
+  const ownAfterInsert = duplicatesAfterInsert.filter(
+    (pItem) => pItem.createdByProfileId === actor.id,
+  );
+  if (ownAfterInsert.length > 0) {
+    await admin
+      .from("matches")
+      .update({
+        status: "cancelled",
+        cancelled_at: new Date().toISOString(),
+        current_proposal_id: proposal.id,
+      })
+      .eq("id", match.id);
+    throw new Error(
+      `Vous avez déjà déclaré ce match (même date, joueurs et héros). Ouvrez-le plutôt : /mes-matchs/${ownAfterInsert[0]!.matchId}`,
+    );
+  }
+
+  const probableDuplicateIds = [
+    ...opponentDuplicates.map((pItem) => pItem.matchId),
+    ...duplicatesAfterInsert
+      .filter((pItem) => pItem.createdByProfileId !== actor.id)
+      .map((pItem) => pItem.matchId),
+  ].filter((pId, pIndex, pAll) => pAll.indexOf(pId) === pIndex);
+
   await recordAction({
     matchId: match.id,
     actorProfileId: actor.id,
@@ -274,10 +354,15 @@ export async function createMatch(pInput: {
     action: "match.created",
     entityType: "match",
     entityId: match.id,
-    afterData: { status: "pendingOpponent", proposalId: proposal.id },
+    afterData: {
+      status: "pendingOpponent",
+      proposalId: proposal.id,
+      acknowledgedOpponentDuplicates: probableDuplicateIds,
+    },
   });
 
   return {
+    status: "created",
     match: { ...match, currentProposalId: proposal.id },
     proposal,
     probableDuplicateIds,

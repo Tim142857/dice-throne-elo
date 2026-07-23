@@ -5,6 +5,7 @@ import {
   buildDuplicateFingerprint,
   getOpponentProfileId,
   isProbableDuplicate,
+  isSameMatchIdentity,
   isTransitionAllowed,
   resolveActorRole,
 } from "@/domain/matches/workflow";
@@ -97,7 +98,7 @@ describe("match workflow transitions", () => {
         action: "updated",
         actor: "creator",
       }),
-    ).toThrow(/non autorisée/);
+    ).toThrow(/déjà validé/);
   });
 });
 
@@ -179,5 +180,23 @@ describe("probable duplicates", () => {
         },
       ),
     ).toBe(false);
+  });
+
+  it("treats same players/heroes/date as the same identity regardless of score", () => {
+    const left = {
+      playedAt: "2024-01-01",
+      player1Id: "a",
+      player2Id: "b",
+      hero1Id: "h1",
+      hero2Id: "h2",
+    };
+    const right = {
+      playedAt: "2024-01-01",
+      player1Id: "b",
+      player2Id: "a",
+      hero1Id: "h2",
+      hero2Id: "h1",
+    };
+    expect(isSameMatchIdentity(left, right)).toBe(true);
   });
 });

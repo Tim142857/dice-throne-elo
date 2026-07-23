@@ -172,26 +172,56 @@ export type DuplicateMatchFingerprint = {
   winnerProfileId: string | null;
 };
 
+export type MatchIdentityFingerprint = {
+  playedAt: string;
+  player1Id: string;
+  player2Id: string;
+  hero1Id: string;
+  hero2Id: string;
+};
+
+function normalizePlayerHeroOrder(pInput: {
+  player1Id: string;
+  player2Id: string;
+  hero1Id: string;
+  hero2Id: string;
+}): {
+  playerA: string;
+  heroA: string;
+  playerB: string;
+  heroB: string;
+} {
+  return pInput.player1Id < pInput.player2Id
+    ? {
+        playerA: pInput.player1Id,
+        heroA: pInput.hero1Id,
+        playerB: pInput.player2Id,
+        heroB: pInput.hero2Id,
+      }
+    : {
+        playerA: pInput.player2Id,
+        heroA: pInput.hero2Id,
+        playerB: pInput.player1Id,
+        heroB: pInput.hero1Id,
+      };
+}
+
 /**
- * Probable duplicate: same date, players, heroes and winner (or draw).
+ * Same date, players and heroes (order-insensitive). Score/outcome ignored.
+ */
+export function buildMatchIdentityFingerprint(pInput: MatchIdentityFingerprint): string {
+  const ordered = normalizePlayerHeroOrder(pInput);
+  return [pInput.playedAt, ordered.playerA, ordered.heroA, ordered.playerB, ordered.heroB].join(
+    "|",
+  );
+}
+
+/**
+ * Probable duplicate including outcome: same date, players, heroes and winner (or draw).
  * Player order is normalized so A vs B equals B vs A with swapped heroes.
  */
 export function buildDuplicateFingerprint(pInput: DuplicateMatchFingerprint): string {
-  const ordered =
-    pInput.player1Id < pInput.player2Id
-      ? {
-          playerA: pInput.player1Id,
-          heroA: pInput.hero1Id,
-          playerB: pInput.player2Id,
-          heroB: pInput.hero2Id,
-        }
-      : {
-          playerA: pInput.player2Id,
-          heroA: pInput.hero2Id,
-          playerB: pInput.player1Id,
-          heroB: pInput.hero1Id,
-        };
-
+  const ordered = normalizePlayerHeroOrder(pInput);
   return [
     pInput.playedAt,
     ordered.playerA,
@@ -207,4 +237,11 @@ export function isProbableDuplicate(
   pRight: DuplicateMatchFingerprint,
 ): boolean {
   return buildDuplicateFingerprint(pLeft) === buildDuplicateFingerprint(pRight);
+}
+
+export function isSameMatchIdentity(
+  pLeft: MatchIdentityFingerprint,
+  pRight: MatchIdentityFingerprint,
+): boolean {
+  return buildMatchIdentityFingerprint(pLeft) === buildMatchIdentityFingerprint(pRight);
 }
