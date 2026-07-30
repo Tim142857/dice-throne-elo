@@ -121,6 +121,9 @@ export function SiteNav({ children, isLoggedIn, unreadCount = 0 }: SiteNavProps)
         >
           Confrontations
         </Link>
+        <Link href="/changelog" role="menuitem" className={menuItemClassName} onClick={closeMobile}>
+          Changelog
+        </Link>
       </NavDropdown>
     </>
   );
@@ -233,6 +236,9 @@ export function SiteNav({ children, isLoggedIn, unreadCount = 0 }: SiteNavProps)
                 onClick={closeMobile}
               >
                 Confrontations
+              </Link>
+              <Link href="/changelog" className={linkClassName} onClick={closeMobile}>
+                Changelog
               </Link>
             </div>
 
