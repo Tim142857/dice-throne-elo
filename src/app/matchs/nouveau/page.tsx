@@ -31,8 +31,8 @@ export default async function NewMatchPage() {
       <header>
         <h1 className="text-3xl font-semibold tracking-tight">Déclarer un match</h1>
         <p className="mt-2 text-sm text-zinc-600">
-          Vous devez être l’un des deux joueurs. L’adversaire devra valider le résultat avant toute
-          mise à jour Elo.
+          Vous devez être l’un des deux joueurs. Si l’adversaire n’a pas activé la validation
+          automatique, il devra confirmer le résultat avant toute mise à jour Elo.
         </p>
       </header>
       <CreateMatchForm

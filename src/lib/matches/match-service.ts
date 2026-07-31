@@ -217,6 +217,7 @@ export type CreateMatchResult =
       match: MatchRow;
       proposal: MatchProposalRow;
       probableDuplicateIds: string[];
+      autoValidated: boolean;
     }
   | {
       status: "needs_confirmation";
@@ -340,14 +341,22 @@ export async function createMatch(pInput: {
     player1Id: parsed.data.player1Id,
     player2Id: parsed.data.player2Id,
   });
-
-  await createNotification({
-    recipientProfileId: opponentId,
-    type: "matchPendingValidation",
-    title: "Match à valider",
-    message: `${actor.pseudo} a déclaré un match en attente de votre validation.`,
-    relatedMatchId: match.id,
+  const opponent = await loadProfile(opponentId);
+  const matchWithProposal = { ...match, currentProposalId: proposal.id };
+  const autoValidated = await maybeAutoValidateForOpponent({
+    match: matchWithProposal,
+    opponent,
   });
+
+  if (!autoValidated) {
+    await createNotification({
+      recipientProfileId: opponentId,
+      type: "matchPendingValidation",
+      title: "Match à valider",
+      message: `${actor.pseudo} a déclaré un match en attente de votre validation.`,
+      relatedMatchId: match.id,
+    });
+  }
 
   await writeAuditLog({
     actorProfileId: actor.id,
@@ -355,17 +364,19 @@ export async function createMatch(pInput: {
     entityType: "match",
     entityId: match.id,
     afterData: {
-      status: "pendingOpponent",
+      status: autoValidated ? "validated" : "pendingOpponent",
       proposalId: proposal.id,
       acknowledgedOpponentDuplicates: probableDuplicateIds,
+      autoValidated,
     },
   });
 
   return {
     status: "created",
-    match: { ...match, currentProposalId: proposal.id },
+    match: matchWithProposal,
     proposal,
     probableDuplicateIds,
+    autoValidated,
   };
 }
 
@@ -448,6 +459,18 @@ export async function updateMatchProposal(pInput: {
     },
   });
 
+  const updatedMatch = mapMatchRow(data as MatchDbRow);
+  const opponentId = getOpponentProfileId({
+    createdByProfileId: actor.id,
+    player1Id: parsed.data.player1Id,
+    player2Id: parsed.data.player2Id,
+  });
+  const opponent = await loadProfile(opponentId);
+  await maybeAutoValidateForOpponent({
+    match: updatedMatch,
+    opponent,
+  });
+
   await writeAuditLog({
     actorProfileId: actor.id,
     action: "match.updated",
@@ -458,7 +481,7 @@ export async function updateMatchProposal(pInput: {
   });
 
   return {
-    match: mapMatchRow(data as MatchDbRow),
+    match: updatedMatch,
     proposal,
     probableDuplicateIds,
   };
@@ -518,7 +541,9 @@ async function finalizeValidation(pInput: {
   actionType: MatchActionType;
   actorRole: "creator" | "opponent" | "admin";
   notifyType?: "matchValidated" | "adminDecision";
+  notifyMessage?: string;
   reason?: string | null;
+  metadata?: Record<string, unknown>;
 }): Promise<MatchRow> {
   if (!pInput.match.currentProposalId) {
     throw new Error("Aucune proposition à valider.");
@@ -594,15 +619,16 @@ async function finalizeValidation(pInput: {
     fromStatus: pInput.match.status,
     toStatus: "validated",
     reason: pInput.reason ?? null,
-    metadata: { proposalId: proposal.id },
+    metadata: { proposalId: proposal.id, ...(pInput.metadata ?? {}) },
   });
 
   const notifyType = pInput.notifyType ?? "matchValidated";
   const title = notifyType === "adminDecision" ? "Décision administrative" : "Match validé";
   const message =
-    notifyType === "adminDecision"
+    pInput.notifyMessage ??
+    (notifyType === "adminDecision"
       ? "Un administrateur a validé le match : il est pris en compte dans les classements."
-      : "Le match a été validé et pris en compte dans les classements.";
+      : "Le match a été validé et pris en compte dans les classements.");
 
   const recipientIds = new Set([pInput.match.player1Id, pInput.match.player2Id]);
   for (const recipientId of recipientIds) {
@@ -625,10 +651,35 @@ async function finalizeValidation(pInput: {
       validatedAt,
       reason: pInput.reason ?? null,
       actionType: pInput.actionType,
+      ...(pInput.metadata ?? {}),
     },
   });
 
   return mapMatchRow(data as MatchDbRow);
+}
+
+/**
+ * If the opponent opted into auto-validation, validate immediately as that opponent.
+ * Returns true when auto-validation ran.
+ */
+async function maybeAutoValidateForOpponent(pInput: {
+  match: MatchRow;
+  opponent: ProfileRow;
+}): Promise<boolean> {
+  if (pInput.opponent.status !== "active" || !pInput.opponent.autoValidateMatches) {
+    return false;
+  }
+
+  await finalizeValidation({
+    match: pInput.match,
+    actor: pInput.opponent,
+    actionType: "validatedByOpponent",
+    actorRole: "opponent",
+    notifyMessage:
+      "Le match a été validé automatiquement (préférence de validation automatique de l’adversaire).",
+    metadata: { autoValidated: true },
+  });
+  return true;
 }
 
 export async function validateMatchByOpponent(pInput: {

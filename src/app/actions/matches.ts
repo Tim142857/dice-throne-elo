@@ -51,7 +51,12 @@ export async function createMatchAction(
   pFormData: FormData,
 ): Promise<
   ActionResult<
-    | { status: "created"; matchId: string; probableDuplicateIds: string[] }
+    | {
+        status: "created";
+        matchId: string;
+        probableDuplicateIds: string[];
+        autoValidated: boolean;
+      }
     | { status: "needs_confirmation"; opponentDuplicateIds: string[] }
   >
 > {
@@ -85,10 +90,13 @@ export async function createMatchAction(
         status: "created",
         matchId: result.match.id,
         probableDuplicateIds: result.probableDuplicateIds,
+        autoValidated: result.autoValidated,
       },
       result.probableDuplicateIds.length > 0
         ? "Match déclaré. Attention : un doublon probable a été détecté."
-        : "Match déclaré. En attente de validation par l’adversaire.",
+        : result.autoValidated
+          ? "Match déclaré et validé automatiquement (préférence de l’adversaire)."
+          : "Match déclaré. En attente de validation par l’adversaire.",
     );
   } catch (pError) {
     return actionError(pError instanceof Error ? pError.message : "Échec de la déclaration.");

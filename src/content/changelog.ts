@@ -11,6 +11,15 @@ export type ChangelogEntry = {
  */
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    date: "2026-07-30",
+    title: "Validation automatique des matchs",
+    items: [
+      "Nouvelle préférence dans Compte : validation manuelle (défaut) ou automatique.",
+      "Si vous activez l’auto-validation, les matchs déclarés par vos adversaires sont pris en compte immédiatement — décision basée sur la confiance.",
+      "Avertissement explicite avant d’activer cette option.",
+    ],
+  },
+  {
     date: "2026-07-23",
     title: "Protection anti-doublons",
     items: [

@@ -50,6 +50,7 @@ export type ProfileRow = {
   slug: string;
   status: AccountStatus;
   role: ProfileRole;
+  autoValidateMatches: boolean;
   createdAt: string;
   approvedAt: string | null;
   suspendedAt: string | null;

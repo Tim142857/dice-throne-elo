@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import { AutoValidatePreferenceForm } from "@/components/account/auto-validate-preference-form";
 import { getAccountStatusLabel, getAuthContext, getDisplayPseudo } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
@@ -37,6 +38,13 @@ export default async function AccountPage() {
           <dd className="mt-1 text-zinc-900">{context.emailVerified ? "Oui" : "Non"}</dd>
         </div>
       </dl>
+
+      {context.profile?.status === "active" ? (
+        <AutoValidatePreferenceForm
+          key={context.profile.autoValidateMatches ? "auto-on" : "auto-off"}
+          initialEnabled={context.profile.autoValidateMatches}
+        />
+      ) : null}
 
       <p className="text-sm text-zinc-600">
         Le pseudo ne peut pas être modifié librement après validation. Contactez l’administrateur

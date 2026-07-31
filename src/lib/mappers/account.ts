@@ -9,6 +9,7 @@ export type ProfileDbRow = {
   slug: string;
   status: AccountStatus;
   role: ProfileRole;
+  auto_validate_matches: boolean;
   created_at: string;
   approved_at: string | null;
   suspended_at: string | null;
@@ -37,6 +38,7 @@ export function mapProfileRow(pRow: ProfileDbRow): ProfileRow {
     slug: pRow.slug,
     status: pRow.status,
     role: pRow.role,
+    autoValidateMatches: Boolean(pRow.auto_validate_matches),
     createdAt: pRow.created_at,
     approvedAt: pRow.approved_at,
     suspendedAt: pRow.suspended_at,
