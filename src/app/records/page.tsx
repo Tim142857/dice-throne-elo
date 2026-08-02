@@ -25,8 +25,11 @@ function formatRecordValue(pCode: string, pValue: number): string {
   if (ELO_RECORD_CODES.has(pCode)) {
     return formatEloDisplay(pValue);
   }
-  if (pCode === "closest_win" || pCode === "largest_win") {
+  if (pCode === "closest_win") {
     return `${pValue} PV`;
+  }
+  if (pCode === "largest_win") {
+    return `${pValue} PV d’écart`;
   }
   return String(pValue);
 }

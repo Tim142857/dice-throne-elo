@@ -7,8 +7,11 @@ export type RecordMatchFact = {
   hero1Id: string;
   hero2Id: string;
   winnerProfileId: string | null;
-  /** Winner remaining HP — required for PV records. */
+  /** Winner remaining HP — used for closest_win. */
   winnerRemainingHealth: number | null;
+  /** Both players' remaining HP — used for largest_win (health gap). */
+  player1RemainingHealth: number | null;
+  player2RemainingHealth: number | null;
   /** True when PV data is reliable enough for PV records. */
   pvReliable: boolean;
   player1EloBefore: number | null;
@@ -73,7 +76,7 @@ export const RECORD_DEFINITIONS = [
   {
     code: "largest_win",
     title: "Passage du rouleau compresseur",
-    subtitle: "Victoire avec le plus de PV restants",
+    subtitle: "Victoire avec le plus grand écart de PV",
   },
   {
     code: "biggest_upset",
@@ -205,13 +208,31 @@ export function computeRecords(pMatches: RecordMatchFact[]): ComputedRecord[] {
           },
           true,
         );
-        pushMaxHolders(holders, "largest_win", {
-          profileId: winnerId,
-          relatedProfileIds: [winnerId],
-          value: match.winnerRemainingHealth,
-          relatedMatchId: match.matchId,
-          establishedAt: match.validatedAt,
-        });
+      }
+
+      if (
+        match.pvReliable &&
+        match.player1RemainingHealth !== null &&
+        match.player2RemainingHealth !== null
+      ) {
+        const winnerHealth =
+          winnerId === match.player1Id
+            ? match.player1RemainingHealth
+            : match.player2RemainingHealth;
+        const loserHealth =
+          winnerId === match.player1Id
+            ? match.player2RemainingHealth
+            : match.player1RemainingHealth;
+        const healthGap = winnerHealth - loserHealth;
+        if (healthGap > 0) {
+          pushMaxHolders(holders, "largest_win", {
+            profileId: winnerId,
+            relatedProfileIds: [winnerId],
+            value: healthGap,
+            relatedMatchId: match.matchId,
+            establishedAt: match.validatedAt,
+          });
+        }
       }
 
       const winnerBefore =

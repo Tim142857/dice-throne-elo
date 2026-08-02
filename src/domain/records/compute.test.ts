@@ -13,6 +13,8 @@ function fact(pPartial: Partial<RecordMatchFact> & Pick<RecordMatchFact, "matchI
     hero2Id: "h2",
     winnerProfileId: "p1",
     winnerRemainingHealth: 10,
+    player1RemainingHealth: 10,
+    player2RemainingHealth: 0,
     pvReliable: true,
     player1EloBefore: 1000,
     player2EloBefore: 1000,
@@ -45,12 +47,16 @@ describe("computeRecords", () => {
         matchId: "no-pv",
         pvReliable: false,
         winnerRemainingHealth: null,
+        player1RemainingHealth: null,
+        player2RemainingHealth: null,
         player1EloAfter: 1200,
       }),
       fact({
         matchId: "with-pv",
         validatedAt: "2026-07-19T00:00:00.000Z",
         winnerRemainingHealth: 2,
+        player1RemainingHealth: 2,
+        player2RemainingHealth: 0,
         pvReliable: true,
       }),
     ]);
@@ -97,6 +103,27 @@ describe("computeRecords", () => {
     const rivalry = records.find((pItem) => pItem.code === "most_frequent_rivalry");
     expect(rivalry?.holders[0]?.value).toBe(2);
     expect(new Set(rivalry?.holders[0]?.relatedProfileIds)).toEqual(new Set(["a", "b"]));
+  });
+
+  it("ranks largest_win by health gap, not winner remaining HP", () => {
+    const records = computeRecords([
+      fact({
+        matchId: "high-hp-small-gap",
+        winnerRemainingHealth: 36,
+        player1RemainingHealth: 36,
+        player2RemainingHealth: 20,
+      }),
+      fact({
+        matchId: "lower-hp-big-gap",
+        validatedAt: "2026-07-19T00:00:00.000Z",
+        winnerRemainingHealth: 25,
+        player1RemainingHealth: 25,
+        player2RemainingHealth: 0,
+      }),
+    ]);
+    const largest = records.find((pItem) => pItem.code === "largest_win");
+    expect(largest?.holders[0]?.relatedMatchId).toBe("lower-hp-big-gap");
+    expect(largest?.holders[0]?.value).toBe(25);
   });
 });
 

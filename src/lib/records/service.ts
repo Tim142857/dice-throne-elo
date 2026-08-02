@@ -85,8 +85,11 @@ export async function loadRecordMatchFacts(): Promise<RecordMatchFact[]> {
     const event2 = events.find((pEvent) => pEvent.profile_id === proposal.player2Id);
 
     // Winner HP was always stored; historical loser HP may be reconstructed.
-    // PV records use winnerRemainingHealth only — treat as reliable when present.
-    const pvReliable = Number.isFinite(proposal.winnerRemainingHealth);
+    // PV records need finite health values (winner for closest, both for largest gap).
+    const pvReliable =
+      Number.isFinite(proposal.winnerRemainingHealth) &&
+      Number.isFinite(proposal.player1RemainingHealth) &&
+      Number.isFinite(proposal.player2RemainingHealth);
 
     facts.push({
       matchId: match.id,
@@ -98,6 +101,12 @@ export async function loadRecordMatchFacts(): Promise<RecordMatchFact[]> {
       hero2Id: proposal.hero2Id,
       winnerProfileId: proposal.winnerProfileId,
       winnerRemainingHealth: proposal.winnerRemainingHealth,
+      player1RemainingHealth: Number.isFinite(proposal.player1RemainingHealth)
+        ? proposal.player1RemainingHealth
+        : null,
+      player2RemainingHealth: Number.isFinite(proposal.player2RemainingHealth)
+        ? proposal.player2RemainingHealth
+        : null,
       pvReliable,
       player1EloBefore: event1 ? toNumber(event1.rating_before) : null,
       player2EloBefore: event2 ? toNumber(event2.rating_before) : null,
