@@ -4,12 +4,14 @@ import { notFound, redirect } from "next/navigation";
 
 import { MatchActionsPanel } from "@/components/matches/match-actions-panel";
 import { AdminPendingMatchActions } from "@/components/admin/admin-pending-match-actions";
+import { formatEloDeltaDisplay } from "@/domain/elo/calculate";
+import { formatMatchFinalHealthScore } from "@/domain/matches/final-health";
 import { listActiveHeroes } from "@/lib/admin/hero-admin";
 import { getAuthContext } from "@/lib/auth/session";
 import { formatDate, formatDateTime } from "@/lib/dates";
-import { formatMatchFinalHealthScore } from "@/domain/matches/final-health";
 import { mapHeroRow, type HeroDbRow } from "@/lib/mappers/hero";
 import { getMatchDetails } from "@/lib/matches/match-service";
+import { loadGeneralEloChangesByMatchIds } from "@/lib/matches/public-matches";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type MatchDetailPageProps = {
@@ -21,6 +23,17 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: MatchDetailPageProps): Promise<Metadata> {
   const { id } = await params;
   return { title: `Match ${id.slice(0, 8)}` };
+}
+
+function EloDelta({ value }: { value: number | null }) {
+  if (value === null) {
+    return <span className="text-zinc-400">—</span>;
+  }
+  return (
+    <span className={value >= 0 ? "text-elo-gain" : "text-elo-loss"}>
+      {formatEloDeltaDisplay(value)}
+    </span>
+  );
 }
 
 export default async function MyMatchDetailPage({ params }: MatchDetailPageProps) {
@@ -67,6 +80,14 @@ export default async function MyMatchDetailPage({ params }: MatchDetailPageProps
   const isOpponent =
     isParticipant && context.profile.id !== details.match.createdByProfileId;
   const isAdminViewer = context.profile.role === "admin" && !isParticipant;
+
+  const eloByMatch =
+    details.match.status === "validated"
+      ? await loadGeneralEloChangesByMatchIds([details.match.id])
+      : null;
+  const eloChanges = eloByMatch?.get(details.match.id);
+  const player1EloChange = eloChanges?.get(details.player1.id) ?? null;
+  const player2EloChange = eloChanges?.get(details.player2.id) ?? null;
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-6 py-16">
@@ -119,6 +140,21 @@ export default async function MyMatchDetailPage({ params }: MatchDetailPageProps
             {heroesById.get(details.proposal.hero2Id)?.name ?? "Héros"}
           </dd>
         </div>
+        {details.match.status === "validated" ? (
+          <div className="sm:col-span-2">
+            <dt className="text-zinc-500">Variation Elo</dt>
+            <dd className="font-medium">
+              <span className="inline-flex flex-wrap items-center gap-x-4 gap-y-1">
+                <span>
+                  {details.player1.pseudo} <EloDelta value={player1EloChange} />
+                </span>
+                <span>
+                  {details.player2.pseudo} <EloDelta value={player2EloChange} />
+                </span>
+              </span>
+            </dd>
+          </div>
+        ) : null}
         {details.proposal.notes ? (
           <div className="sm:col-span-2">
             <dt className="text-zinc-500">Notes</dt>

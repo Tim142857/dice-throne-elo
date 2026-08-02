@@ -11,6 +11,13 @@ export type ChangelogEntry = {
  */
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    date: "2026-08-02",
+    title: "Variation Elo sur les détails de match",
+    items: [
+      "Chaque match validé affiche désormais le gain ou la perte d’Elo pour les deux joueurs.",
+    ],
+  },
+  {
     date: "2026-07-30",
     title: "Validation automatique des matchs",
     items: [

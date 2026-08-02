@@ -1,12 +1,24 @@
 import Link from "next/link";
 
+import { formatEloDeltaDisplay } from "@/domain/elo/calculate";
+import { formatMatchFinalHealthScore } from "@/domain/matches/final-health";
 import type { PublicValidatedMatch } from "@/lib/matches/public-matches";
 import { formatDate } from "@/lib/dates";
-import { formatMatchFinalHealthScore } from "@/domain/matches/final-health";
 
 type ValidatedMatchCardProps = {
   match: PublicValidatedMatch;
 };
+
+function EloDelta({ value }: { value: number | null }) {
+  if (value === null) {
+    return <span className="text-zinc-400">—</span>;
+  }
+  return (
+    <span className={value >= 0 ? "text-elo-gain" : "text-elo-loss"}>
+      {formatEloDeltaDisplay(value)}
+    </span>
+  );
+}
 
 export function ValidatedMatchCard({ match }: ValidatedMatchCardProps) {
   const winnerPseudo =
@@ -51,6 +63,21 @@ export function ValidatedMatchCard({ match }: ValidatedMatchCardProps) {
           <dt className="text-zinc-500">Issue</dt>
           <dd className="font-medium text-zinc-900">
             {winnerPseudo ? `Victoire — ${winnerPseudo}` : "Match nul"}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-zinc-500">Variation Elo</dt>
+          <dd className="font-medium text-zinc-900">
+            <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span>
+                {match.player1.pseudo}{" "}
+                <EloDelta value={match.player1.eloChange} />
+              </span>
+              <span>
+                {match.player2.pseudo}{" "}
+                <EloDelta value={match.player2.eloChange} />
+              </span>
+            </span>
           </dd>
         </div>
       </dl>
