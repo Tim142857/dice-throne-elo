@@ -12,10 +12,11 @@ export type ChangelogEntry = {
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
     date: "2026-08-02",
-    title: "Variation Elo et record d’écart PV",
+    title: "Variation Elo et records PV",
     items: [
       "Chaque match validé affiche désormais le gain ou la perte d’Elo pour les deux joueurs.",
       "Le record « Passage du rouleau compresseur » se base sur l’écart de PV, plus sur les seuls PV restants du vainqueur.",
+      "Suppression du record « Chirurgien du 1 PV » (plafond non battable).",
     ],
   },
   {

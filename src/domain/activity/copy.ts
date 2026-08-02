@@ -147,9 +147,6 @@ export function formatRecordValue(pCode: string, pValue: number): string {
   if (pCode === "highest_elo" || pCode === "largest_single_elo_gain" || pCode === "best_ten_match_progression") {
     return `${Math.round(pValue)} Elo`;
   }
-  if (pCode === "closest_win") {
-    return `${Math.round(pValue)} PV`;
-  }
   if (pCode === "largest_win") {
     return `${Math.round(pValue)} PV d’écart`;
   }

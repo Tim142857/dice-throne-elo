@@ -7,7 +7,7 @@ export type RecordMatchFact = {
   hero1Id: string;
   hero2Id: string;
   winnerProfileId: string | null;
-  /** Winner remaining HP — used for closest_win. */
+  /** Winner remaining HP (legacy / diagnostics). */
   winnerRemainingHealth: number | null;
   /** Both players' remaining HP — used for largest_win (health gap). */
   player1RemainingHealth: number | null;
@@ -67,11 +67,6 @@ export const RECORD_DEFINITIONS = [
     code: "most_opponents_beaten",
     title: "Prédateur social",
     subtitle: "Plus grand nombre d’adversaires différents battus",
-  },
-  {
-    code: "closest_win",
-    title: "Chirurgien du 1 PV",
-    subtitle: "Victoire avec le moins de PV restants",
   },
   {
     code: "largest_win",
@@ -193,21 +188,6 @@ export function computeRecords(pMatches: RecordMatchFact[]): ComputedRecord[] {
           matchId: match.matchId,
           at: match.validatedAt,
         });
-      }
-
-      if (match.pvReliable && match.winnerRemainingHealth !== null) {
-        pushMaxHolders(
-          holders,
-          "closest_win",
-          {
-            profileId: winnerId,
-            relatedProfileIds: [winnerId],
-            value: match.winnerRemainingHealth,
-            relatedMatchId: match.matchId,
-            establishedAt: match.validatedAt,
-          },
-          true,
-        );
       }
 
       if (

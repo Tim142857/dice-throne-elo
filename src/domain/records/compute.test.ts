@@ -54,15 +54,16 @@ describe("computeRecords", () => {
       fact({
         matchId: "with-pv",
         validatedAt: "2026-07-19T00:00:00.000Z",
-        winnerRemainingHealth: 2,
-        player1RemainingHealth: 2,
-        player2RemainingHealth: 0,
+        winnerRemainingHealth: 20,
+        player1RemainingHealth: 20,
+        player2RemainingHealth: 2,
         pvReliable: true,
       }),
     ]);
-    const closest = records.find((pItem) => pItem.code === "closest_win");
-    expect(closest?.holders).toHaveLength(1);
-    expect(closest?.holders[0]?.relatedMatchId).toBe("with-pv");
+    const largest = records.find((pItem) => pItem.code === "largest_win");
+    expect(largest?.holders).toHaveLength(1);
+    expect(largest?.holders[0]?.relatedMatchId).toBe("with-pv");
+    expect(largest?.holders[0]?.value).toBe(18);
     const highest = records.find((pItem) => pItem.code === "highest_elo");
     expect(highest?.holders.some((pHolder) => pHolder.value === 1200)).toBe(true);
   });
